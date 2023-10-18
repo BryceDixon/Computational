@@ -152,7 +152,7 @@ class QU:
     
         
 
-def calculate(matrix, max_it = 100, acceptance = 0.001, print_conv = True, save_folder = None, savefilename = None):
+def calculate(matrix, max_it = 100, acceptance = 0.001, print_conv = True, save_folder = None, savefilename = None, message_out = True):
     """
     Function to calculate the eigenvalues of a given 2 x 2 matrix
     
@@ -170,6 +170,8 @@ def calculate(matrix, max_it = 100, acceptance = 0.001, print_conv = True, save_
         directory to save the convergence plot to, defaults to None
     savefilename: str, optional
         filename for the convergence plot, defaults to None
+    message_out: bool, optional
+        If True, display output messages showing eigenvalues and iterations to reach convergence, If False, no output messages are displayed, defaults to True
     
     Raises
     ------
@@ -203,10 +205,12 @@ def calculate(matrix, max_it = 100, acceptance = 0.001, print_conv = True, save_
             acc_val += val
             # this code requires the percentage difference to be less than the acceptance value for 2 consecutive iterations for convergence to be reached
             if acc_val == len(matrix)*2:
-                # onc econvergence is reached, print the eigenvalues and stop the loop
-                print("Reached Covergence after {} iterations".format(i+1))
-                for i in range(len(A)):
-                    print("Eigenvalue {} = {}".format(i+1, round(A[i,i], 3)))
+                # once convergence is reached, print the eigenvalues and stop the loop
+                # only print if message_out is True, this is useful for if running this function in a loop
+                if message_out is True:
+                    print("Reached Covergence after {} iterations".format(i+1))
+                    for i in range(len(A)):
+                        print("Eigenvalue {} = {}".format(i+1, round(A[i,i], 3)))
                 break
             else:
                 pass
@@ -224,6 +228,7 @@ def calculate(matrix, max_it = 100, acceptance = 0.001, print_conv = True, save_
         if save_folder is not None and savefilename is not None:
             plt.savefig(str(save_folder)+"/"+str(savefilename)+".png", bbox_inches='tight')
         elif save_folder is None and savefilename is None:
+            # no message displayed if both save_folder and savefilename are none, it's assumed the user did not intend to save the plot
             pass
         else:
             print("Figure not saved, you need to provide both savefilename and save_folder to save the figure")

@@ -71,7 +71,7 @@ def plot(mass_range, spring_const, eig_max_it = 100, eig_acceptance = 0.001, sav
     for i in range(len(mass_range)):
 
         M = os_matrix(mass_range[i], spring_const)
-        A = qu.calculate(M, eig_max_it, eig_acceptance, False)
+        A = qu.calculate(M, eig_max_it, eig_acceptance, False, message_out=False)
         A_array[i,:,:] = A
     
     fig = plt.figure(figsize = (10,7))
@@ -79,12 +79,22 @@ def plot(mass_range, spring_const, eig_max_it = 100, eig_acceptance = 0.001, sav
     ax.set_xlabel('Particle Mass ($kg$)')
     ax.set_ylabel('Frequency ($Rads^{-1}$)')
     
+    labels = ['Eigenvalue 1, $\\omega = \\sqrt{\\frac{3k}{m}}$', 'Eigenvalue 2, $\\omega = \\sqrt{\\frac{k}{m}}$']
     for i in range(len(A_array[0,:,:])):
         # -omega = square root of the eigenvalue so to get omega we must flip the sign of the eigenvalue and square root
         omega = np.sqrt(A_array[:,i,i]*-1)
-        ax.plot(mass_range, omega, color = 'C'+str(i), label = 'Eigenvalue '+str(i+1))
+        ax.plot(mass_range, omega, color = 'C'+str(i), label = labels[i])
     
     ax.legend()
+
+    # save the plot provided  save_folder and savefilename are given, if they are not given, the code will still run but the plot will not be saved      
+    if save_folder is not None and savefilename is not None:
+        plt.savefig(str(save_folder)+"/"+str(savefilename)+".png", bbox_inches='tight')
+    elif save_folder is None and savefilename is None:
+        # no message displayed if both save_folder and savefilename are none, it's assumed the user did not intend to save the plot
+        pass
+    else:
+        print("Figure not saved, you need to provide both savefilename and save_folder to save the figure")
 
     
     
