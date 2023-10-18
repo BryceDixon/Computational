@@ -1,15 +1,16 @@
 '''
 Assessment 1 - Coupled Oscillators
+Code for the the QU algorithm
 
 Contains:
     QU class
-        Decompose function
-        Compare function
+        decompose function
+        compare function
         conv_plot function
-    Calculate function
+    calculate function
 
 Author: Bryce Dixon
-Version: 10/10/2023
+Version: 18/10/2023
 '''
 
 import numpy as np
@@ -191,6 +192,7 @@ def calculate(matrix, max_it = 100, acceptance = 0.001, print_conv = True, save_
     decomp = QU(matrix, print_conv)
     acc_val = 0
     # loop through the maximum number of iterations to run each function of the class for each iteration
+    # a maximum number of iterations is used to prevent the code from running indefinitely in the case that convergence is not reached
     for i in range(max_it):
         decomp.decompose()
         if print_conv is True:
