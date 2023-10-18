@@ -78,8 +78,9 @@ def plot(mass_range, spring_const, eig_max_it = 100, eig_acceptance = 0.001, sav
     ax = fig.add_subplot(1,1,1)
     ax.set_xlabel('Particle Mass ($kg$)')
     ax.set_ylabel('Frequency ($Rads^{-1}$)')
+    ax.set_title('Frequency against Mass for a coupled oscillator with spring constant of {} N/m'.format(spring_const))
     
-    labels = ['Eigenvalue 1, $\\omega = \\sqrt{\\frac{3k}{m}}$', 'Eigenvalue 2, $\\omega = \\sqrt{\\frac{k}{m}}$']
+    labels = ['Eigenvalue 1, $\\omega_1 = \\sqrt{\\frac{3k}{m}}$', 'Eigenvalue 2, $\\omega_2 = \\sqrt{\\frac{k}{m}}$']
     for i in range(len(A_array[0,:,:])):
         # -omega = square root of the eigenvalue so to get omega we must flip the sign of the eigenvalue and square root
         omega = np.sqrt(A_array[:,i,i]*-1)
