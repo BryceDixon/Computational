@@ -103,8 +103,8 @@ class QU:
         val = 0
         for i in range(len(self.A)):
             # for each diagonal element of the current matrix, calculate the percentage difference between it and that of the previous matrix
-            conv = (((self.A[i,i] - self.matrix[i,i])**2)**0.5)/self.matrix[i,i]
-            conv_abs = (conv**2)**0.5
+            conv = (abs(self.A[i,i] - self.matrix[i,i]))/self.matrix[i,i]
+            conv_abs = abs(conv)
             # modify val by 1 if the percentage difference is less than the acceptance value for the eigenvalue in position i,i
             if conv_abs < acceptance:
                 val += 1
@@ -209,8 +209,12 @@ def calculate(matrix, max_it = 100, acceptance = 0.001, print_conv = True, save_
                 # only print if message_out is True, this is useful for if running this function in a loop
                 if message_out is True:
                     print("Reached Covergence after {} iterations".format(i+1))
+                    print("---------------------------------------------")
                     for i in range(len(A)):
                         print("Eigenvalue {} = {}".format(i+1, round(A[i,i], 3)))
+                    print("----------------------------------")
+                    print("Final Matrix:")
+                    print(A.round(3))
                 break
             else:
                 pass
@@ -218,7 +222,15 @@ def calculate(matrix, max_it = 100, acceptance = 0.001, print_conv = True, save_
             # setting acc_val back to zero here ensures acc_val will only be 2 times the length of the matrix if two consecutive iterations are accepted
             acc_val = 0
             if i == max_it-1:
-                print("No convergence reached after maximum number of iterations, consider increasing the maximum iterations or the acceptance value")
+                if message_out is True:
+                    print("No convergence reached after maximum number of iterations, consider increasing the maximum iterations, the acceptance value, or printing the convergence to examine the chains")
+                    print("------------------------------------------------------------------------------------------------------------------------------------------------------------------------------")
+                    print("Final Eigenvalues of the last iteration:")
+                    for i in range(len(A)):
+                        print("Eigenvalue {} = {}".format(i+1, round(A[i,i], 3)))
+                    print("---------------------------------")
+                    print("Final Matrix:")
+                    print(A.round(3))
                 break
             else:
                 pass
