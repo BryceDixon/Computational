@@ -59,7 +59,7 @@ def os_matrix(mass, spring_const):
     return M
 
 
-def mass_plot(mass_range, spring_const, eig_max_it = 100, eig_acceptance = 0.001, mass2_range = None, save_folder = None, savefilename = None):
+def mass_plot(mass_range, spring_const, eig_max_it = 100, eig_acceptance = 0.001, mass2_range = None, analytical = False, save_folder = None, savefilename = None):
     """Function to generate a plot of frequency against mass for a system of equal mass coupled oscillators
 
     Parameters
@@ -72,6 +72,10 @@ def mass_plot(mass_range, spring_const, eig_max_it = 100, eig_acceptance = 0.001
         maximum number of iterations to perform when computing the eigenvalues using the QU algorithm, defaults to 100
     eig_acceptance : float, optional
         acceptance value for convergence of the QU algorithm, percentage difference between the current and previous eigenvalue as a decimal, defaults to 0.001
+    mass2_range : array or list of floats, optional
+        array of masses, m_2, of the 2nd particle in the two particle coupled oscillator, (assumes mass_range is the 1st paricle), defaults to None
+    analytical : bool, optional
+        If True, plot the analytical solution derived using the characteristic equation on the graph, if False do not plot that, defaults to False
     save_folder : _type_, optional
         _description_, by default None
     savefilename : _type_, optional
@@ -87,11 +91,17 @@ def mass_plot(mass_range, spring_const, eig_max_it = 100, eig_acceptance = 0.001
     
     if mass2_range is None:
     
+        f_1 = []
+        f_2 = []
+    
         for i in range(len(mass_range)):
 
             M = os_matrix(mass_range[i], spring_const)
             A = qu.calculate(M, eig_max_it, eig_acceptance, False, message_out=False)
             A_array[i,:,:] = A
+            if analytical is True:
+                f_1.append(np.sqrt(3*spring_const/mass_range[i]))
+                f_2.append(np.sqrt(spring_const/mass_range[i]))
     
         ax.set_xlabel('Particle Mass ($kg$)')
         labels = ['Eigenvalue 1, $\\omega_1 = \\sqrt{\\frac{3k}{m}}$', 'Eigenvalue 2, $\\omega_2 = \\sqrt{\\frac{k}{m}}$']
@@ -99,6 +109,9 @@ def mass_plot(mass_range, spring_const, eig_max_it = 100, eig_acceptance = 0.001
             # -omega = square root of the eigenvalue so to get omega we must flip the sign of the eigenvalue and square root
             omega = np.sqrt(A_array[:,i,i]*-1)
             ax.plot(mass_range, omega, color = 'C'+str(i), label = labels[i])
+        if analytical is True:    
+            ax.plot(mass_range, f_1, linestyle = '--', color = 'k', label = 'Analytical $\\omega_1 = \\sqrt{\\frac{3k}{m}}$')
+            ax.plot(mass_range, f_2, linestyle = ':', color = 'k', label = 'Analytical $\\omega_2 = \\sqrt{\\frac{k}{m}}$')
     
     if mass2_range is not None:
         
@@ -116,7 +129,7 @@ def mass_plot(mass_range, spring_const, eig_max_it = 100, eig_acceptance = 0.001
         for i in range(len(A_array[0,:,:])):
             # -omega = square root of the eigenvalue so to get omega we must flip the sign of the eigenvalue and square root
             omega = np.sqrt(A_array[:,i,i]*-1)
-            ax.plot(mass_range, omega, color = 'C'+str(i), label = 'Eigenvale '+str(i))
+            ax.plot(mass_range, omega, color = 'C'+str(i), label = 'Eigenvale '+str(i+1))
             ax2 = ax.twiny()
             ax2.plot(mass2_range, omega, color = 'C'+str(i))
         ax2.set_xlabel('Particle 2 Mass ($kg$)')
