@@ -1,5 +1,5 @@
 """
-File to all the code for the coupled oscillator assessment in and produce all the required outputs
+File to run all the code for the coupled oscillator assessment in and produce all the required outputs
 Please ensure that qu_decomp.py and os_plot.py are saved in the same folder as this file otherwise the imports will not work
 For clarity of output it could be recommended to run each section individually either by commenting out the code lines in the other sections or by creating cells using # %% if the editor supports it
 
