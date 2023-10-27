@@ -75,7 +75,7 @@ def mass_plot(mass_range, spring_const, eig_max_it = 100, eig_acceptance = 0.001
     mass2_range : array or list of floats, optional
         array of masses, m_2, of the 2nd particle in the two particle coupled oscillator, (assumes mass_range is the 1st paricle), defaults to None
     analytical : bool, optional
-        If True, plot the analytical solution derived using the characteristic equation on the graph, if False do not plot that, defaults to False
+        If True, plot the analytical solution derived using the characteristic equation on the graph, if False do not plot that, only works for a single mass_range, defaults to False
     save_folder : _type_, optional
         _description_, by default None
     savefilename : _type_, optional
@@ -117,8 +117,6 @@ def mass_plot(mass_range, spring_const, eig_max_it = 100, eig_acceptance = 0.001
         
         assert len(mass2_range) == len(mass_range), 'mass2_range must be the same length as mass_range'
         
-        red_mass_range = []
-        
         for i in range(len(mass_range)):
 
             M = os_matrix((mass_range[i],mass2_range[i]), spring_const)
@@ -130,9 +128,13 @@ def mass_plot(mass_range, spring_const, eig_max_it = 100, eig_acceptance = 0.001
             # -omega = square root of the eigenvalue so to get omega we must flip the sign of the eigenvalue and square root
             omega = np.sqrt(A_array[:,i,i]*-1)
             ax.plot(mass_range, omega, color = 'C'+str(i), label = 'Eigenvale '+str(i+1))
-            ax2 = ax.twiny()
-            ax2.plot(mass2_range, omega, color = 'C'+str(i))
-        ax2.set_xlabel('Particle 2 Mass ($kg$)')
+            if max(mass2_range) - min(mass2_range) != 0:
+                ax2 = ax.twiny()
+                ax2.plot(mass2_range, omega, color = 'C'+str(i))
+        try:
+            ax2.set_xlabel('Particle 2 Mass ($kg$)')
+        except:
+            pass
 
     ax.legend()
         
