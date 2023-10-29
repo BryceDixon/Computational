@@ -83,16 +83,18 @@ def mass_plot(mass_range, spring_const, eig_max_it = 100, eig_acceptance = 0.001
     """
     
     A_array = np.zeros(shape = (len(mass_range),2,2))
+    mass_range = np.array(mass_range)
     
     fig = plt.figure(figsize = (10,7))
     ax = fig.add_subplot(1,1,1)
     ax.set_ylabel('Frequency ($Rads^{-1}$)')
     ax.set_title('Frequency against Mass for a coupled oscillator with spring constant of {} N/m'.format(spring_const))
+    labels = ['Computed $\\omega_1$', 'Computed $\\omega_2$']
+    
+    f_1 = []
+    f_2 = []
     
     if mass2_range is None:
-    
-        f_1 = []
-        f_2 = []
     
         for i in range(len(mass_range)):
 
@@ -104,7 +106,6 @@ def mass_plot(mass_range, spring_const, eig_max_it = 100, eig_acceptance = 0.001
                 f_2.append(np.sqrt(spring_const/mass_range[i]))
     
         ax.set_xlabel('Particle Mass ($kg$)')
-        labels = ['Eigenvalue 1, $\\omega_1 = \\sqrt{\\frac{3k}{m}}$', 'Eigenvalue 2, $\\omega_2 = \\sqrt{\\frac{k}{m}}$']
         for i in range(len(A_array[0,:,:])):
             # -omega = square root of the eigenvalue so to get omega we must flip the sign of the eigenvalue and square root
             omega = np.sqrt(A_array[:,i,i]*-1)
@@ -116,25 +117,32 @@ def mass_plot(mass_range, spring_const, eig_max_it = 100, eig_acceptance = 0.001
     if mass2_range is not None:
         
         assert len(mass2_range) == len(mass_range), 'mass2_range must be the same length as mass_range'
+        mass2_range = np.array(mass2_range)
         
         for i in range(len(mass_range)):
 
             M = os_matrix((mass_range[i],mass2_range[i]), spring_const)
             A = qu.calculate(M, eig_max_it, eig_acceptance, False, message_out=False)
             A_array[i,:,:] = A
+            if analytical is True:
+                m_r = (mass_range[i]+mass2_range[i])/(mass_range[i]*mass2_range[i])
+                f_1.append(np.sqrt(spring_const*m_r+np.sqrt((spring_const**2) * (m_r**2) - ((3*spring_const**2)/(mass_range[i]*mass2_range[i])))))
+                f_2.append(np.sqrt(spring_const*m_r-np.sqrt((spring_const**2) * (m_r**2) - ((3*spring_const**2)/(mass_range[i]*mass2_range[i])))))
             
         ax.set_xlabel('Particle 1 Mass ($kg$)')
         for i in range(len(A_array[0,:,:])):
             # -omega = square root of the eigenvalue so to get omega we must flip the sign of the eigenvalue and square root
             omega = np.sqrt(A_array[:,i,i]*-1)
-            ax.plot(mass_range, omega, color = 'C'+str(i), label = 'Eigenvale '+str(i+1))
+            ax.plot(mass_range, omega, color = 'C'+str(i), label = labels[i])
             if max(mass2_range) - min(mass2_range) != 0:
                 ax2 = ax.twiny()
-                ax2.plot(mass2_range, omega, color = 'C'+str(i))
-        try:
-            ax2.set_xlabel('Particle 2 Mass ($kg$)')
-        except:
-            pass
+                ax2.plot(mass2_range, omega, alpha = 1, color = 'C'+str(i))
+                if mass2_range[0] > mass2_range[-1]:
+                    ax2.invert_xaxis()
+                ax2.set_xlabel('Particle 2 Mass ($kg$)')
+        if analytical is True:    
+            ax.plot(mass_range, f_1, linestyle = '--', color = 'k', label = 'Analytical $\\omega_1 = \\sqrt{km_r+\\sqrt{k^2m_r^2-\\frac{3k^2}{m_1 m_2}}}$')
+            ax.plot(mass_range, f_2, linestyle = ':', color = 'k', label = 'Analytical $\\omega_1 = \\sqrt{km_r-\\sqrt{k^2m_r^2-\\frac{3k^2}{m_1 m_2}}}$')
 
     ax.legend()
         
