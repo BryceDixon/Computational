@@ -31,6 +31,7 @@ A = qu.calculate(matrix = matrix, max_it = 100, acceptance = 0.001, print_conv =
 # lets not work with the coupled oscillator, we can use the os.os_matrix function to generate an M matrix for the eigenvalue equation MA=-w^2A
 # we give a mass and a spring constant
 oscillator_matrix = os.os_matrix(mass = 10, spring_const = 5)
+# alternatively, we can give this 2 different mass values so get the matrix for unequal masses
 # we can then plug this into the qu.calculate function to calculate the eigenvalues which will be equal to -w^2
 # run with default parameters
 A_os = qu.calculate(oscillator_matrix)
@@ -39,9 +40,10 @@ A_os = qu.calculate(oscillator_matrix)
 ########## Frequency against Mass ##########
 
 
-# os.plot enables us to see how the frequency of the coupled oscillator changed with the mass of the particles for a given spring constant
+# os.mass_plot enables us to see how the frequency of the coupled oscillator changed with the mass of the particles for a given spring constant
 # lets first set up a mass array to plot over, I chose a geomspace due to the 1/m expected relationship so to ensure smoothness of the line its best to have more numbers near 1
 # a linspace would work fine but the plot would not be very smooth at low numbers
 mass_range = np.geomspace(1,100,100)
-# mass_range and spring_const are the only essential parameters so we will run with default parameters, these are almost identical to the qu.calculate parameters, check docstrings for parameters information
-os.plot(mass_range, spring_const = 5)
+# mass_range and spring_const are the only essential parameters so we will run with default parameters
+os.mass_plot(mass_range = mass_range, spring_const = 5, eig_max_it = 100, eig_acceptance = 0.001, mass2_range = None, analytical = False, save_folder = None, savefilename = None)
+# this function also allows us to plot for differing masses by providing another mass array as the mass2_range parameter and we can plot the analytical solution using the analytical parameter

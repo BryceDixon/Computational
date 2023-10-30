@@ -136,7 +136,7 @@ def mass_plot(mass_range, spring_const, eig_max_it = 100, eig_acceptance = 0.001
             ax.plot(mass_range, omega, color = 'C'+str(i), label = labels[i])
             if max(mass2_range) - min(mass2_range) != 0:
                 ax2 = ax.twiny()
-                ax2.plot(mass2_range, omega, alpha = 1, color = 'C'+str(i))
+                ax2.plot(mass2_range, omega, alpha = 0, color = 'C'+str(i))
                 if mass2_range[0] > mass2_range[-1]:
                     ax2.invert_xaxis()
                 ax2.set_xlabel('Particle 2 Mass ($kg$)')
@@ -157,7 +157,7 @@ def mass_plot(mass_range, spring_const, eig_max_it = 100, eig_acceptance = 0.001
 
     
     
-def spring_const_plot(spring_const_range, mass, eig_max_it = 100, eig_acceptance = 0.001, save_folder = None, savefilename = None):
+def spring_const_plot(spring_const_range, mass, eig_max_it = 100, eig_acceptance = 0.001, analytical = False, save_folder = None, savefilename = None):
     """Function to generate a plot of frequency against mass for a system of equal mass coupled oscillators
 
     Parameters
@@ -170,6 +170,8 @@ def spring_const_plot(spring_const_range, mass, eig_max_it = 100, eig_acceptance
         maximum number of iterations to perform when computing the eigenvalues using the QU algorithm, defaults to 100
     eig_acceptance : float, optional
         acceptance value for convergence of the QU algorithm, percentage difference between the current and previous eigenvalue as a decimal, defaults to 0.001
+    analytical : bool, optional
+        If True, plot the analytical solution derived using the characteristic equation on the graph, if False do not plot that, only works for a single mass_range, defaults to False
     save_folder : _type_, optional
         _description_, by default None
     savefilename : _type_, optional
@@ -178,11 +180,17 @@ def spring_const_plot(spring_const_range, mass, eig_max_it = 100, eig_acceptance
     
     A_array = np.zeros(shape = (len(spring_const_range),2,2))
     
+    f_1 = []
+    f_2 = []
+    
     for i in range(len(spring_const_range)):
 
         M = os_matrix(mass, spring_const_range[i])
         A = qu.calculate(M, eig_max_it, eig_acceptance, False, message_out=False)
         A_array[i,:,:] = A
+        if analytical is True:
+            f_1.append(np.sqrt(3*spring_const_range[i]/mass))
+            f_2.append(np.sqrt(spring_const_range[i]/mass))
     
     fig = plt.figure(figsize = (10,7))
     ax = fig.add_subplot(1,1,1)
@@ -190,11 +198,14 @@ def spring_const_plot(spring_const_range, mass, eig_max_it = 100, eig_acceptance
     ax.set_ylabel('Frequency ($Rads^{-1}$)')
     ax.set_title('Frequency against Spring Constant for a coupled oscillator with particle mass of {} kg'.format(mass))
     
-    labels = ['Eigenvalue 1, $\\omega_1 = \\sqrt{\\frac{3k}{m}}$', 'Eigenvalue 2, $\\omega_2 = \\sqrt{\\frac{k}{m}}$']
+    labels = ['Computed $\\omega_1$', 'Computed $\\omega_2$']
     for i in range(len(A_array[0,:,:])):
         # -omega = square root of the eigenvalue so to get omega we must flip the sign of the eigenvalue and square root
         omega = np.sqrt(A_array[:,i,i]*-1)
         ax.plot(spring_const_range, omega, color = 'C'+str(i), label = labels[i])
+    if analytical is True:    
+        ax.plot(spring_const_range, f_1, linestyle = '--', color = 'k', label = 'Analytical $\\omega_1 = \\sqrt{\\frac{3k}{m}}$')
+        ax.plot(spring_const_range, f_2, linestyle = ':', color = 'k', label = 'Analytical $\\omega_2 = \\sqrt{\\frac{k}{m}}$')
     
     ax.legend()
 
