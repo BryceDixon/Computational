@@ -139,15 +139,13 @@ class QU:
         for i in range(len(self.A)):
             # y is defined as the previous and current matrix diagonal element for each element seperately
             y = (self.matrix[i,i], self.A[i,i])
-            # assign a colour to each element
-            c = 'C'+str(i)
             if x[0] == 0:
                 # for the first iteration, setup the legend and label
-                self.ax.plot(x,y, c=c, label = 'Eigenvalue '+str(i+1))
+                self.ax.plot(x,y, c='C'+str(i), label = 'Eigenvalue '+str(i+1))
                 self.ax.legend(bbox_to_anchor=(1.2, 1), loc='upper right', borderaxespad=0, fontsize = 10)
             else:
                 # subsequent iterations plotted without a label        
-                self.ax.plot(x,y, c=c)
+                self.ax.plot(x,y, c='C'+str(i))
                     
     
         
@@ -193,7 +191,6 @@ def calculate(matrix, max_it = 100, acceptance = 0.001, print_conv = True, save_
     # define an instance of the QU class
     decomp = QU(matrix, print_conv)
     acc_val = 0
-    # loop through the maximum number of iterations to run each function of the class for each iteration
     # a maximum number of iterations is used to prevent the code from running indefinitely in the case that convergence is not reached
     for i in range(max_it):
         decomp.decompose()

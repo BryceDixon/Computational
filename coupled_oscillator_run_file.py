@@ -41,9 +41,11 @@ A_os = qu.calculate(oscillator_matrix)
 
 
 # os.mass_plot enables us to see how the frequency of the coupled oscillator changed with the mass of the particles for a given spring constant
-# lets first set up a mass array to plot over, I chose a geomspace due to the 1/m expected relationship so to ensure smoothness of the line its best to have more numbers near 1
-# a linspace would work fine but the plot would not be very smooth at low numbers
+# lets first set up a mass array to plot over, I chose a geomspace due to the root 1/m expected relationship so to ensure smoothness of the line its best to have more numbers near 1
+# a linspace would work fine but the plot would not be very smooth at low numbers unless a large amount of points were used
 mass_range = np.geomspace(1,100,100)
 # mass_range and spring_const are the only essential parameters so we will run with default parameters
 os.mass_plot(mass_range = mass_range, spring_const = 5, eig_max_it = 100, eig_acceptance = 0.001, mass2_range = None, analytical = False, save_folder = None, savefilename = None)
 # this function also allows us to plot for differing masses by providing another mass array as the mass2_range parameter and we can plot the analytical solution using the analytical parameter
+# when plotting with multiple mass ranges its is highly recommended to use linspaces to ensure the axes are equivalent and the plots the correct shape
+# os.spring_const_plot will produce a simlar frequency vs spring constant plot for a given range of spring constants at a fixed mass, parameter information can be found in the function docstring
