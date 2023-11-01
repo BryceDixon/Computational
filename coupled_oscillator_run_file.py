@@ -31,7 +31,7 @@ A = qu.calculate(matrix = matrix, max_it = 100, acceptance = 0.001, print_conv =
 # lets not work with the coupled oscillator, we can use the os.os_matrix function to generate an M matrix for the eigenvalue equation MA=-w^2A
 # we give a mass and a spring constant
 oscillator_matrix = os.os_matrix(mass = 10, spring_const = 5)
-# alternatively, we can give this 2 different mass values so get the matrix for unequal masses
+# alternatively, we can give this 2 different mass values in a list to get the matrix for unequal masses
 # we can then plug this into the qu.calculate function to calculate the eigenvalues which will be equal to -w^2
 # run with default parameters
 A_os = qu.calculate(oscillator_matrix)
