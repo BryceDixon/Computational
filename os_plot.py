@@ -113,10 +113,19 @@ def mass_plot(mass_range, spring_const, eig_max_it = 100, eig_acceptance = 0.001
     A_array = np.zeros(shape = (len(mass_range),2,2))
     mass_range = np.array(mass_range)
     
-    fig = plt.figure(figsize = (10,7))
-    ax = fig.add_subplot(1,1,1)
-    ax.set_ylabel('Frequency ($Rads^{-1}$)')
-    ax.set_title('Frequency against Mass for a coupled oscillator with spring constant of {} N/m'.format(spring_const))
+    if analytical is False:
+        fig = plt.figure(figsize = (10,7))
+        ax = fig.add_subplot(1,1,1)
+    if analytical is True:
+        fig, ax = plt.subplots(ncols=1, nrows=2, sharex=True, figsize=(10,7), gridspec_kw={'height_ratios': [3,1]})
+        fig.subplots_adjust(hspace=0)
+    try:
+        ax[0].set_ylabel('Frequency ($Rads^{-1}$)')
+        ax[0].set_title('Frequency against Mass for a coupled oscillator with spring constant of {} N/m'.format(spring_const))
+        ax[1].set_ylabel('Relative Error')
+    except:
+        ax.set_ylabel('Frequency ($Rads^{-1}$)')
+        ax.set_title('Frequency against Mass for a coupled oscillator with spring constant of {} N/m'.format(spring_const))
     labels = ['Computed $\\omega_1$', 'Computed $\\omega_2$']
     
     f_1 = []
@@ -135,15 +144,24 @@ def mass_plot(mass_range, spring_const, eig_max_it = 100, eig_acceptance = 0.001
                 f_1.append(np.sqrt(3*spring_const/mass_range[i]))
                 f_2.append(np.sqrt(spring_const/mass_range[i]))
     
-        ax.set_xlabel('Particle Mass ($kg$)')
         for i in range(len(A_array[0,:,:])):
             # -omega = square root of the eigenvalue so to get omega we must flip the sign of the eigenvalue and square root to get the frequency
             omega = np.sqrt(A_array[:,i,i]*-1)
-            ax.plot(mass_range, omega, color = 'C'+str(i), label = labels[i])
+            if analytical is True:
+                ax[0].plot(mass_range, omega, color = 'C'+str(i), label = labels[i])
+                if i == 0:
+                    dif = (np.abs(np.array(f_1)-np.array(omega)))/np.array(omega)
+                if i == 1:
+                    dif = (np.abs(np.array(f_2)-np.array(omega)))/np.array(omega)
+                ax[1].plot(mass_range, dif)
+                ax[1].set_xlabel('Particle Mass ($kg$)')
+            else:
+                ax.plot(mass_range, omega, color = 'C'+str(i), label = labels[i])
+                ax.set_xlabel('Particle Mass ($kg$)')
         if analytical is True:
             # plot the analytical solutions    
-            ax.plot(mass_range, f_1, linestyle = '--', color = 'k', label = 'Analytical $\\omega_1 = \\sqrt{\\frac{3k}{m}}$')
-            ax.plot(mass_range, f_2, linestyle = ':', color = 'k', label = 'Analytical $\\omega_2 = \\sqrt{\\frac{k}{m}}$')
+            ax[0].plot(mass_range, f_1, linestyle = '--', color = 'k', label = 'Analytical $\\omega_1 = \\sqrt{\\frac{3k}{m}}$')
+            ax[0].plot(mass_range, f_2, linestyle = ':', color = 'k', label = 'Analytical $\\omega_2 = \\sqrt{\\frac{k}{m}}$')
     
     # similar steps for if 2 mass ranges are provided
     if mass2_range is not None:
@@ -163,25 +181,40 @@ def mass_plot(mass_range, spring_const, eig_max_it = 100, eig_acceptance = 0.001
                 f_1.append(np.sqrt(spring_const*m_r+np.sqrt((spring_const**2) * (m_r**2) - ((3*spring_const**2)/(mass_range[i]*mass2_range[i])))))
                 f_2.append(np.sqrt(spring_const*m_r-np.sqrt((spring_const**2) * (m_r**2) - ((3*spring_const**2)/(mass_range[i]*mass2_range[i])))))
             
-        ax.set_xlabel('Particle 1 Mass ($kg$)')
         for i in range(len(A_array[0,:,:])):
             # -omega = square root of the eigenvalue so to get omega we must flip the sign of the eigenvalue and square root, same as before
             omega = np.sqrt(A_array[:,i,i]*-1)
-            ax.plot(mass_range, omega, color = 'C'+str(i), label = labels[i])
             # this ensures that a second x axis for m_2 does not get created for the case of a constant m_2, an array of single values
             if max(mass2_range) - min(mass2_range) != 0:
-                ax2 = ax.twiny()
+                try:
+                    ax2 = ax[0].twiny()
+                except:
+                    ax2 = ax.twiny()
                 # second plot ensure the second x axis appears, the line is invisible but should follow the m_1 plots
                 ax2.plot(mass2_range, omega, alpha = 0, color = 'C'+str(i))
                 if mass2_range[0] > mass2_range[-1]:
                     # ensures correct formatting of the second x axis for when a decending list is used for m_2
                     ax2.invert_xaxis()
                 ax2.set_xlabel('Particle 2 Mass ($kg$)')
+            if analytical is True:
+                ax[0].plot(mass_range, omega, color = 'C'+str(i), label = labels[i])
+                if i == 0:
+                    dif = (np.abs(np.array(f_1)-np.array(omega)))/np.array(omega)
+                if i == 1:
+                    dif = (np.abs(np.array(f_2)-np.array(omega)))/np.array(omega)
+                ax[1].plot(mass_range, dif)
+                ax[1].set_xlabel('Particle 1 Mass ($kg$)')
+            else:
+                ax.plot(mass_range, omega, color = 'C'+str(i), label = labels[i])
+                ax.set_xlabel('Particle 1 Mass ($kg$)')
         if analytical is True:    
-            ax.plot(mass_range, f_1, linestyle = '--', color = 'k', label = 'Analytical $\\omega_1 = \\sqrt{km_r+\\sqrt{k^2m_r^2-\\frac{3k^2}{m_1 m_2}}}$')
-            ax.plot(mass_range, f_2, linestyle = ':', color = 'k', label = 'Analytical $\\omega_1 = \\sqrt{km_r-\\sqrt{k^2m_r^2-\\frac{3k^2}{m_1 m_2}}}$')
+            ax[0].plot(mass_range, f_1, linestyle = '--', color = 'k', label = 'Analytical $\\omega_1 = \\sqrt{km_r+\\sqrt{k^2m_r^2-\\frac{3k^2}{m_1 m_2}}}$')
+            ax[0].plot(mass_range, f_2, linestyle = ':', color = 'k', label = 'Analytical $\\omega_1 = \\sqrt{km_r-\\sqrt{k^2m_r^2-\\frac{3k^2}{m_1 m_2}}}$')
 
-    ax.legend()
+    try:
+        ax[0].legend()
+    except:
+        ax.legend()
         
     # save the plot provided  save_folder and savefilename are given, if they are not given, the code will still run but the plot will not be saved      
     if save_folder is not None and savefilename is not None:
@@ -230,21 +263,42 @@ def spring_const_plot(spring_const_range, mass, eig_max_it = 100, eig_acceptance
             f_1.append(np.sqrt(3*spring_const_range[i]/mass))
             f_2.append(np.sqrt(spring_const_range[i]/mass))
     
-    fig = plt.figure(figsize = (10,7))
-    ax = fig.add_subplot(1,1,1)
-    ax.set_xlabel('Spring Constant ($Nm^{-1}$)')
-    ax.set_ylabel('Frequency ($Rads^{-1}$)')
-    ax.set_title('Frequency against Spring Constant for a coupled oscillator with particle mass of {} kg'.format(mass))
+    if analytical is False:
+        fig = plt.figure(figsize = (10,7))
+        ax = fig.add_subplot(1,1,1)
+    if analytical is True:
+        fig, ax = plt.subplots(ncols=1, nrows=2, sharex=True, figsize=(10,7), gridspec_kw={'height_ratios': [3,1]})
+        fig.subplots_adjust(hspace=0)
+    try:
+        ax[0].set_ylabel('Frequency ($Rads^{-1}$)')
+        ax[0].set_title('Frequency against Spring Constant for a coupled oscillator with particle mass of {} kg'.format(mass))
+        ax[1].set_xlabel('Spring Constant ($Nm^{-1}$)')
+        ax[1].set_ylabel('Relative Error')
+    except:
+        ax.set_xlabel('Spring Constant ($Nm^{-1}$)')
+        ax.set_ylabel('Frequency ($Rads^{-1}$)')
+        ax.set_title('Frequency against Spring Constant for a coupled oscillator with particle mass of {} kg'.format(mass))
     
     labels = ['Computed $\\omega_1$', 'Computed $\\omega_2$']
     for i in range(len(A_array[0,:,:])):
         omega = np.sqrt(A_array[:,i,i]*-1)
-        ax.plot(spring_const_range, omega, color = 'C'+str(i), label = labels[i])
+        if analytical is True:
+            ax[0].plot(spring_const_range, omega, color = 'C'+str(i), label = labels[i])
+            if i == 0:
+                dif = (np.abs(np.array(f_1)-np.array(omega)))/np.array(omega)
+            if i == 1:
+                dif = (np.abs(np.array(f_2)-np.array(omega)))/np.array(omega)
+            ax[1].plot(spring_const_range, dif)
+        else:
+            ax.plot(spring_const_range, omega, color = 'C'+str(i), label = labels[i])
     if analytical is True:    
-        ax.plot(spring_const_range, f_1, linestyle = '--', color = 'k', label = 'Analytical $\\omega_1 = \\sqrt{\\frac{3k}{m}}$')
-        ax.plot(spring_const_range, f_2, linestyle = ':', color = 'k', label = 'Analytical $\\omega_2 = \\sqrt{\\frac{k}{m}}$')
+        ax[0].plot(spring_const_range, f_1, linestyle = '--', color = 'k', label = 'Analytical $\\omega_1 = \\sqrt{\\frac{3k}{m}}$')
+        ax[0].plot(spring_const_range, f_2, linestyle = ':', color = 'k', label = 'Analytical $\\omega_2 = \\sqrt{\\frac{k}{m}}$')
     
-    ax.legend()
+    try:
+        ax[0].legend()
+    except:
+        ax.legend()
 
     # save the plot provided  save_folder and savefilename are given, if they are not given, the code will still run but the plot will not be saved      
     if save_folder is not None and savefilename is not None:
