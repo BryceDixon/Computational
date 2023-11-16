@@ -15,7 +15,7 @@ from astropy.constants import G as G_grav
 import matplotlib.pyplot as plt
 
 
-def a(positions, masses, use_grav = True):
+def a(positions, masses, softening, use_grav = True):
     """
     Function to calculate the gravitational accelerations acting on N number of particles at given positions
 
@@ -55,7 +55,7 @@ def a(positions, masses, use_grav = True):
             dif_pos = positions[k,:] - positions[i,:]
             
             # calculate r^3 using vector differences, include the softening factor
-            r = ((np.linalg.norm(dif_pos))**2 + 0.00001**2)**(3/2)
+            r = ((np.linalg.norm(dif_pos))**2 + softening**2)**(3/2)
             
             # calculate the x,y,z components of acceleration and add them to the acceleration of the ith particle
             a[i,:] += ((G * masses[k])/r)*dif_pos
@@ -73,22 +73,33 @@ class N_body:
         self.pos_0 = pos_0
         self.v_0 = v_0
         self.m = m
+
+        fig = plt.figure(figsize = (10,7))
+        self.ax = fig.add_subplot(2,1,1)
+        self.ax2 = fig.add_subplot(2,1,2)
     
-    
-    def verlet(self, use_grav):
+    def verlet(self, softening, use_grav):
         
-        v_step = self.v_0 + 0.5 * self.h * a(self.pos_0, self.m, use_grav)
+        v_step = self.v_0 + 0.5 * self.h * a(self.pos_0, self.m, softening, use_grav)
         pos = self.pos_0 + self.h * v_step
-        v = v_step + 0.5 * self.h * a(pos, self.m, use_grav)
+        v = v_step + 0.5 * self.h * a(pos, self.m, softening, use_grav)
     
         self.v = v
         self.pos = pos
+        print(self.v)
+        print(self.pos)
+        print(a(pos, self.m, softening, use_grav))
     
-    def plot(self):
+    def plot(self, iteration):
         
         for i in range(len(self.pos[:,0])):
-            plt.plot([self.pos_0[i,0],self.pos[i,0]], [self.pos_0[i,1], self.pos[i,1]], color = 'C'+str(i))
+            self.ax.plot([self.pos_0[i,0],self.pos[i,0]], [self.pos_0[i,1], self.pos[i,1]], color = 'C'+str(i))
+        
+        for i in range(len(self.pos[:,0])):
+            L_0 = np.cross(self.pos_0[i,0:2], self.v_0[i,0:2])
+            L = np.cross(self.pos[i,0:2], self.v[i,0:2])
+            self.ax2.plot([iteration, iteration+1], [L_0,L], color = 'C'+str(i))
+        
         
         self.pos_0 = self.pos
         self.v_0 = self.v
-        
