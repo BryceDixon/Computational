@@ -15,7 +15,7 @@ from astropy.constants import G as G_grav
 import matplotlib.pyplot as plt
 
 
-def a(positions, masses, softening, use_grav = True):
+def a(positions, masses, softening, fixed_mass = None, use_grav = True):
     """
     Function to calculate the gravitational accelerations acting on N number of particles at given positions
 
@@ -45,20 +45,30 @@ def a(positions, masses, softening, use_grav = True):
     assert len(positions[0,:]) == 3, "Number of columns in position must be equal to 3, representing x,y,z positions"
     assert np.shape(masses) == (len(positions[:,0]),), "masses must be a 1D array or list of the particle masses and the number of particle masses given must match number of particles in position array"
     
+    if fixed_mass is None:
+        fixed_mass = np.zeros_like(masses, dtype=float)
+    fixed_mass = np.array(fixed_mass)
+    
     a = np.zeros_like(positions)
         
     for i in range(len(positions[:,0])):
         
-        for k in range(len(positions[:,0])):
+        if fixed_mass[i] == 1.:
             
-            # calculate difference in x,y,z positions for particle k and i, will be 0 for when k=i and so not contribute to acceleration
-            dif_pos = positions[k,:] - positions[i,:]
+            a[i,:] += 0.
+        
+        else:
+        
+            for k in range(len(positions[:,0])):
             
-            # calculate r^3 using vector differences, include the softening factor
-            r = ((np.linalg.norm(dif_pos))**2 + softening**2)**(3/2)
+                # calculate difference in x,y,z positions for particle k and i, will be 0 for when k=i and so not contribute to acceleration
+                dif_pos = positions[k,:] - positions[i,:]
             
-            # calculate the x,y,z components of acceleration and add them to the acceleration of the ith particle
-            a[i,:] += ((G * masses[k])/r)*dif_pos
+                # calculate r^3 using vector differences, include the softening factor
+                r = ((np.linalg.norm(dif_pos))**2 + softening**2)**(3/2)
+            
+                # calculate the x,y,z components of acceleration and add them to the acceleration of the ith particle
+                a[i,:] += ((G * masses[k])/r)*dif_pos
     
     return a 
 
@@ -78,17 +88,20 @@ class N_body:
         self.ax = fig.add_subplot(2,1,1)
         self.ax2 = fig.add_subplot(2,1,2)
     
-    def verlet(self, softening, use_grav):
+    def verlet(self, softening, fixed_mass, use_grav):
         
-        v_step = self.v_0 + 0.5 * self.h * a(self.pos_0, self.m, softening, use_grav)
+        print(self.v_0)
+        print(self.pos_0)
+        print(a(self.pos_0, self.m, softening, fixed_mass, use_grav))
+        v_step = self.v_0 + 0.5 * self.h * a(self.pos_0, self.m, softening, fixed_mass, use_grav)
         pos = self.pos_0 + self.h * v_step
-        v = v_step + 0.5 * self.h * a(pos, self.m, softening, use_grav)
+        v = v_step + 0.5 * self.h * a(pos, self.m, softening, fixed_mass, use_grav)
     
         self.v = v
         self.pos = pos
         print(self.v)
         print(self.pos)
-        print(a(pos, self.m, softening, use_grav))
+        print(a(pos, self.m, softening, fixed_mass, use_grav))
     
     def plot(self, iteration):
         
