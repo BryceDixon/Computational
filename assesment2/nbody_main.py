@@ -109,9 +109,12 @@ class N_body:
             self.ax.plot([self.pos_0[i,0],self.pos[i,0]], [self.pos_0[i,1], self.pos[i,1]], color = 'C'+str(i))
         
         for i in range(len(self.pos[:,0])):
-            L_0 = np.cross(self.pos_0[i,0:2], self.v_0[i,0:2])
-            L = np.cross(self.pos[i,0:2], self.v[i,0:2])
-            self.ax2.plot([iteration, iteration+1], [L_0,L], color = 'C'+str(i))
+            L_0 = np.cross(self.pos_0[i,:], self.m[i] * self.v_0[i,:])
+            mod_L0 = np.linalg.norm(L_0)
+            L = np.cross(self.pos[i,:], self.m[i] * self.v[i,:])
+            mod_L = np.linalg.norm(L)
+
+            self.ax2.plot([iteration, iteration+1], [mod_L0,mod_L], color = 'C'+str(i))
         
         
         self.pos_0 = self.pos
