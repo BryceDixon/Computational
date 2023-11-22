@@ -152,10 +152,20 @@ class N_body:
         fig = plt.figure(figsize = (10,16))
         if np.any(self.v_0[:,2]) == True:
             self.ax = fig.add_subplot(3,1,1, projection = '3d')
+            self.ax.set_zlabel('Z Position')
         else:
             self.ax = fig.add_subplot(3,1,1)
         self.ax2 = fig.add_subplot(3,1,2)
         self.ax3 = fig.add_subplot(3,1,3)
+        self.ax.set_xlabel('X Position')
+        self.ax.set_ylabel('Y Position')
+        self.ax.set_title('Orbital Paths for the N-body system')
+        self.ax2.set_xlabel('Iteration')
+        self.ax2.set_ylabel('Angular Momentum Error (%)')
+        self.ax2.set_title('Percentage Angular Momentum Error of the N-body system against iterations')
+        self.ax3.set_xlabel('Iteration')
+        self.ax3.set_ylabel('Energy Error (%)')
+        self.ax3.set_title('Percentage Energy Error of the N-body system against iterations')
     
     def verlet(self, softening):
         """Function to calculate the new velocity and position of the masses using the velocity verlet algorithm
@@ -195,44 +205,44 @@ class N_body:
             current iteration of the N-body code
         """
         
+        L = 0
+        L_0 = 0
+        E = 0
+        E_0 = 0
+        E = 0
+        E_0 = 0
+        Ep_0 = E_pot(self.pos_0, self.m, self.use_grav)
+        Ep = E_pot(self.pos, self.m, self.use_grav)
+        
         for i in range(len(self.pos[:,0])):
             if self.fixed_mass[i] == 1 and iteration == 0:
                 self.ax.scatter(self.pos_0[i,0], self.pos_0[i,1], color = 'C'+str(i), s = 5)
             else:
                 if np.any(self.v_0[:,2]) == True:
                     self.ax.plot3D([self.pos_0[i,0],self.pos[i,0]], [self.pos_0[i,1], self.pos[i,1]], [self.pos_0[i,2], self.pos[i,2]], color = 'C'+str(i))
-                    self.ax.set_xlabel('X Position')
-                    self.ax.set_ylabel('Y Position')
-                    self.ax.set_zlabel('Z Position')
                 else:
                     self.ax.plot([self.pos_0[i,0],self.pos[i,0]], [self.pos_0[i,1], self.pos[i,1]], color = 'C'+str(i))
-        
-        L = 0
-        L_0 = 0
-        for i in range(len(self.pos[:,0])):
+            
             L_0 += np.cross(self.pos_0[i,:], self.m[i] * self.v_0[i,:])
             L += np.cross(self.pos[i,:], self.m[i] * self.v[i,:])
         
-        mod_L0 = np.linalg.norm(L_0)
-        mod_L = np.linalg.norm(L)
-
-        self.ax2.plot([iteration, iteration+1], [mod_L0,mod_L], color = 'C0')
-        
-        Ep_0 = E_pot(self.pos_0, self.m, self.use_grav)
-        Ep = E_pot(self.pos, self.m, self.use_grav)
-        
-        E = 0
-        E_0 = 0
-        for i in range(len(self.pos[:,0])):
             E_0 += -Ep_0[i] + 0.5 * self.m[i] * np.linalg.norm(self.v_0[i,:])**2
             E += -Ep[i] + 0.5 * self.m[i] * np.linalg.norm(self.v[i,:])**2
         
+        mod_L0 = np.linalg.norm(L_0)
+        mod_L = np.linalg.norm(L)
+        
         if iteration == 0:
             self.E_initial = E_0
+            self.L_initial = mod_L0
         
-        E_0 = (E_0 - self.E_initial)/self.E_initial
-        E = (E - self.E_initial)/self.E_initial
-        self.ax3.plot([iteration, iteration+1], [E_0,E], color = 'C0')
+        errmod_L0 = np.sqrt(((mod_L0 - self.L_initial)/self.L_initial)**2)*100
+        errmod_L = np.sqrt(((mod_L - self.L_initial)/self.L_initial)**2)*100
+        self.ax2.plot([iteration, iteration+1], [errmod_L0,errmod_L], color = 'C0')
+        
+        errE_0 = np.sqrt(((E_0 - self.E_initial)/self.E_initial)**2)*100
+        errE = np.sqrt(((E - self.E_initial)/self.E_initial)**2)*100
+        self.ax3.plot([iteration, iteration+1], [errE_0,errE], color = 'C0')
             
         self.pos_0 = self.pos
         self.v_0 = self.v
