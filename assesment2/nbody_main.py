@@ -54,33 +54,29 @@ def a(positions, masses, softening, fixed_mass = None, use_grav = True):
         fixed_mass = np.zeros_like(masses, dtype=float)
     fixed_mass = np.array(fixed_mass)
     
-    a = np.zeros_like(positions)
+    a = np.zeros_like(positions, dtype=float)
         
     for i in range(len(positions[:,0])):
-        
         if fixed_mass[i] == 1.:
-            
             a[i,:] += 0.
-        
         else:
-        
             for k in range(len(positions[:,0])):
-            
-                # calculate difference in x,y,z positions for particle k and i, will be 0 for when k=i and so not contribute to acceleration
-                dif_pos = positions[k,:] - positions[i,:]
-            
-                # calculate r^3 using vector differences, include the softening factor
-                r = ((np.linalg.norm(dif_pos))**2 + softening**2)**(3/2)
-            
-                # calculate the x,y,z components of acceleration and add them to the acceleration of the ith particle
-                a[i,:] += ((G * masses[k])/r)*dif_pos
+                if i == k:
+                    a[i,:] += 0.
+                else:
+                    # calculate difference in x,y,z positions for particle k and i, will be 0 for when k=i and so not contribute to acceleration
+                    dif_pos = positions[k,:] - positions[i,:]
+                    # calculate r^3 using vector differences, include the softening factor
+                    r = (np.sqrt((np.linalg.norm(dif_pos))**2 + softening**2))**3
+                    # calculate the x,y,z components of acceleration and add them to the acceleration of the ith particle
+                    a[i,:] += ((G * masses[k])/r)*dif_pos
     
     return a 
 
 
-def E_pot(positions, masses, use_grav = True):
+def E_pot(positions, masses, softening, use_grav = True):
     """
-    Function to calculate the gravitational potential energy of each particle at the given positions
+    Function to calculate the gravitational potential energy the system at the given particle positions
 
     Parameters
     ----------
@@ -89,12 +85,12 @@ def E_pot(positions, masses, use_grav = True):
     masses : array of floats
         1D array of particle masses in order m_1, m_2, ..., etc
     use_grav : bool, optional
-        If True, the gravitational constant G will be used in acceleration calculation, If False, G will be treated as 1, essentially giving the answers in terms of G, defaults to True
+        If True, the gravitational constant G will be used in the energy calculation, If False, G will be treated as 1, essentially giving the answers in terms of G, defaults to True
     
     Returns
     -------
-    E : array of floats
-        1D array representing the potential energies of each particle
+    E : float
+        gravitational potential energy of the system
     """
     
     positions = np.array(positions, dtype=float)
@@ -104,23 +100,48 @@ def E_pot(positions, masses, use_grav = True):
     if use_grav is False:
         G = 1.
     
-    E = np.zeros_like(masses)
+    E = 0
     
     for i in range(len(masses)):
-        for k in range(len(masses)):
-            if k == i:
-                E[i] += 0
-            else:
-                dif_pos = positions[k,:] - positions[i,:]
-                r = np.linalg.norm(dif_pos)
-                E[i] += ((G * masses[k] * masses[i])/r)
+        for k in range(i+1, len(masses)):
+            dif_pos = positions[k,:] - positions[i,:]
+            r = (np.linalg.norm(dif_pos)**2 + softening**2)**0.5
+            E -= ((G * masses[k] * masses[i])/r)
+    
+    return E
+
+
+def E_kin(velocities, masses):
+    """
+    Function to calculate the total kinetic energy of the system at the given particle velocities
+
+    Parameters
+    ----------
+    velocities : array  of floats
+        2D array of floats with 3 columns representing initial x,y,z velocities and N rows representing each particle
+    masses : array of floats
+        1D array of particle masses in order m_1, m_2, ..., etc
+
+    Returns
+    -------
+    E : float
+        total kinetic energy of the system
+    """
+    
+    velocities = np.array(velocities, dtype=float)
+    masses = np.array(masses, dtype=float)
+    
+    E = 0
+    
+    for i in range(len(masses)):
+        E += 0.5 * masses[i] * np.dot(velocities[i,:], velocities[i,:])
     
     return E
 
 
 class N_body:
     
-    def __init__(self, h, pos_0, v_0, m, use_grav, fixed_mass):
+    def __init__(self, h, pos_0, v_0, m, use_grav, fixed_mass, softening):
         """Class to perform the N-body simulation on a system of particles given the initial positions and velocities of the particles
 
         Parameters
@@ -147,6 +168,9 @@ class N_body:
         self.m = m
         self.use_grav = use_grav
         self.fixed_mass = fixed_mass
+        self.softening = softening
+        
+        self.a_0 = a(self.pos_0, self.m, self.softening, self.fixed_mass, self.use_grav)
             
 
         fig = plt.figure(figsize = (10,16))
@@ -167,7 +191,7 @@ class N_body:
         self.ax3.set_ylabel('Energy Error (%)')
         self.ax3.set_title('Percentage Energy Error of the N-body system against iterations')
     
-    def verlet(self, softening):
+    def verlet(self):
         """Function to calculate the new velocity and position of the masses using the velocity verlet algorithm
 
         Parameters
@@ -176,9 +200,11 @@ class N_body:
             float value to define the softening of the system, this ensure correct behaviour of the bodies when the distance between them is particularlly small
         """
         
-        v_step = self.v_0 + 0.5 * self.h * a(self.pos_0, self.m, softening, self.fixed_mass, self.use_grav)
+        a_cur = a(pos, self.m, self.softening, self.fixed_mass, self.use_grav)
+        
+        v_step = self.v_0 + 0.5 * self.h * self.a_0
         pos = self.pos_0 + self.h * v_step
-        v = v_step + 0.5 * self.h * a(pos, self.m, softening, self.fixed_mass, self.use_grav)
+        v = v_step + 0.5 * self.h * a_cur
         
         if 1 in self.fixed_mass:
             pass
@@ -195,6 +221,7 @@ class N_body:
     
         self.v = v
         self.pos = pos
+        self.a_0 = a_cur
     
     def plot(self, iteration):
         """Function to plot the positions of the masses over the orbits, the angular momentum of the system over the orbits, and the energy of the system over the orbits
@@ -207,18 +234,12 @@ class N_body:
         
         L = 0
         L_0 = 0
-        E = 0
-        E_0 = 0
-        E = 0
-        E_0 = 0
-        Ep_0 = E_pot(self.pos_0, self.m, self.use_grav)
-        Ep = E_pot(self.pos, self.m, self.use_grav)
         
         for i in range(len(self.pos[:,0])):
             if self.fixed_mass[i] == 1 and iteration == 0:
                 self.ax.scatter(self.pos_0[i,0], self.pos_0[i,1], color = 'C'+str(i), s = 5)
             else:
-                if np.any(self.v_0[:,2]) == True:
+                if np.any(self.v_0[:,2]) == True or np.any(self.pos_0[:,2]) == True:
                     self.ax.plot3D([self.pos_0[i,0],self.pos[i,0]], [self.pos_0[i,1], self.pos[i,1]], [self.pos_0[i,2], self.pos[i,2]], color = 'C'+str(i))
                 else:
                     self.ax.plot([self.pos_0[i,0],self.pos[i,0]], [self.pos_0[i,1], self.pos[i,1]], color = 'C'+str(i))
@@ -226,8 +247,8 @@ class N_body:
             L_0 += np.cross(self.pos_0[i,:], self.m[i] * self.v_0[i,:])
             L += np.cross(self.pos[i,:], self.m[i] * self.v[i,:])
         
-            E_0 += -Ep_0[i] + 0.5 * self.m[i] * np.linalg.norm(self.v_0[i,:])**2
-            E += -Ep[i] + 0.5 * self.m[i] * np.linalg.norm(self.v[i,:])**2
+        E_0 = E_pot(self.pos_0, self.m, self.softening, self.use_grav) + E_kin(self.v_0, self.m)
+        E = E_pot(self.pos, self.m, self.softening, self.use_grav) + E_kin(self.v, self.m)
         
         mod_L0 = np.linalg.norm(L_0)
         mod_L = np.linalg.norm(L)
@@ -236,9 +257,14 @@ class N_body:
             self.E_initial = E_0
             self.L_initial = mod_L0
         
-        errmod_L0 = np.sqrt(((mod_L0 - self.L_initial)/self.L_initial)**2)*100
-        errmod_L = np.sqrt(((mod_L - self.L_initial)/self.L_initial)**2)*100
-        self.ax2.plot([iteration, iteration+1], [errmod_L0,errmod_L], color = 'C0')
+        if self.L_initial != 0:
+            errmod_L0 = np.sqrt(((mod_L0 - self.L_initial)/self.L_initial)**2)*100
+            errmod_L = np.sqrt(((mod_L - self.L_initial)/self.L_initial)**2)*100
+            self.ax2.plot([iteration, iteration+1], [errmod_L0,errmod_L], color = 'C0')
+        else:
+            self.ax2.plot([iteration, iteration+1], [mod_L0,mod_L], color = 'C0')
+            self.ax2.set_ylabel('Angular Momentum L')
+            self.ax2.set_title('Angular Momentum of the N-body system against iterations')
         
         errE_0 = np.sqrt(((E_0 - self.E_initial)/self.E_initial)**2)*100
         errE = np.sqrt(((E - self.E_initial)/self.E_initial)**2)*100
@@ -276,7 +302,7 @@ def nbody(iterations, h, position_init, velocity_init, masses, use_grav = True, 
         fixed_mass = np.zeros_like(masses, dtype=float)
     fixed_mass = np.array(fixed_mass)
         
-    N = N_body(h, position_init, velocity_init, masses, use_grav, fixed_mass)
+    N = N_body(h, position_init, velocity_init, masses, use_grav, fixed_mass, softening)
     for i in range(iterations):
-        N.verlet(softening)
+        N.verlet()
         N.plot(i)
