@@ -183,11 +183,15 @@ class N_body:
         self.fixed_mass = fixed_mass
         self.softening = softening
         
+        # calculate initial acceleration to be used in the first step of the verlet algorithm
         self.a_0 = a(self.pos_0, self.m, self.softening, self.fixed_mass, self.use_grav)
         
+        # set up variables for plotting, this is designed so the user can input a plotting number much smaller than the total iterations, this number will be used to determine how many points are plotted
         assert tot_iterations >= (plotting_num * 2), "Total iterations must be larger or equal to 2 times plotting_num"
         self.step = 0
+        # a point will be saved to an array at every interval iteration
         self.interval = int(tot_iterations/plotting_num)
+        # due to rounding based on the values chosen, self.plotting_num will be used as the number of points plotted and therefore the length of the arrays, this will be similar or equal to the inputted plotting number
         self.plotting_num = len(np.arange(0,tot_iterations,self.interval))
         self.pos_array = np.zeros(shape = (self.plotting_num, len(self.m), 3))
         self.v_array = np.zeros(shape = (self.plotting_num, len(self.m), 3))
@@ -199,11 +203,14 @@ class N_body:
         """Function to calculate the new velocity and position of the masses using the velocity verlet algorithm
         """
         
+        # self.a_0 is used to ensure acceleration is only calculated once to speed up the code
         v_step = self.v_0 + 0.5 * self.h * self.a_0
         pos = self.pos_0 + self.h * v_step
+        # calculate the new acceleration, this will become the old acceleration at the end of this function
         a_cur = a(pos, self.m, self.softening, self.fixed_mass, self.use_grav)
         v = v_step + 0.5 * self.h * a_cur
         
+        # if none of the masses are fixed, calculate the change in the center of mass and minus it from the current positions
         if 1 in self.fixed_mass:
             pass
         else:
@@ -217,6 +224,7 @@ class N_body:
             comdif = (com/msum) - (com_0/msum)
             pos = pos - comdif
     
+        # current positions and velocities are updated, and the old acceleration is set to the current
         self.v = v
         self.pos = pos
         self.a_0 = a_cur
@@ -231,12 +239,14 @@ class N_body:
         """
         
         if iteration == 0:
+            # at the 0th iteration, add the initial positions and velocities to the saving arrays
             self.pos_array[self.it_step,:,:] = self.pos_0
             self.v_array[self.it_step,:,:] = self.v_0
             self.step += int(self.interval)
             self.iteration_list.append(iteration)
             self.it_step += 1
         elif iteration == self.step:
+            # when the iteration is equal to the desired interval, add the positions and velocities to the saving arrays
             self.pos_array[self.it_step,:,:] = self.pos
             self.v_array[self.it_step,:,:] = self.v
             self.step += int(self.interval)
@@ -251,6 +261,7 @@ class N_body:
         else:
             pass
         
+        # update the initial positions and velocities
         self.pos_0 = self.pos
         self.v_0 = self.v
     
@@ -258,6 +269,7 @@ class N_body:
         """Function to plot the positions of the masses over the orbits, the angular momentum of the system over the orbits, and the energy of the system over the orbits
         """
         
+        # set up plots, if a z component is present in the positions or velocities then plot the orbits in 3D
         fig = plt.figure(figsize = (10,16), dpi = 200)
         if np.any(self.v_array[:,:,2]) == True or np.any(self.pos_array[:,:,2]) == True:
             ax = fig.add_subplot(3,1,1, projection = '3d')
@@ -275,6 +287,7 @@ class N_body:
         L = np.zeros(self.plotting_num, dtype = float)
         E = np.zeros(self.plotting_num, dtype = float)
         
+        # plot the orbits
         for i in range(len(self.m)):
             if self.fixed_mass[i] == 1:
                 ax.scatter(self.pos_array[0,i,0], self.pos_array[0,i,1], color = 'C'+str(i), s = 5)
@@ -284,16 +297,19 @@ class N_body:
                 else:
                     ax.plot(self.pos_array[:,i,0], self.pos_array[:,i,1], color = 'C'+str(i))
         
+        # calculate the angular momentum, adding the components for each mass then normalising
         for l in range(self.plotting_num):
             L_cur = 0
             for i in range(len(self.m)):
                 L_cur += np.cross(self.pos_array[l,i,:], self.m[i] * self.v_array[l,i,:])
             L[l] = np.linalg.norm(L_cur)
         
+        # calculate energy
         for i in range(self.plotting_num):
             E[i] = E_pot(self.pos_array[i,:,:], self.m, self.softening, self.use_grav) + E_kin(self.v_array[i,:,:], self.m)
         
         if L[0] != 0:
+            # if the initial angular momentum is not 0, calculate percentage error in angular momentum and plot
             errmod_L = np.zeros(self.plotting_num, dtype = float)
             for i in range(self.plotting_num):
                 errmod_L[i] = np.sqrt(((L[i] - L[0])/L[0])**2)*100
@@ -306,6 +322,7 @@ class N_body:
             ax2.set_title('Angular Momentum of the N-body system against iterations')
 
         if E[0] != 0:
+            # similar for the energy
             errE = np.zeros(self.plotting_num, dtype = float)
             for i in range(self.plotting_num):
                 errE[i] = np.sqrt(((E[i] - E[0])/E[0])**2)*100
