@@ -157,8 +157,21 @@ class N_body:
         use_grav : bool, optional
             If True, the gravitational constant G will be used in acceleration and potential energy calculation, If False, G will be treated as 1, essentially giving the answers in terms of G, defaults to True
         fixed_mass : array of ints, optional
-            1D array of 1s and 0s equal in length to the mass array, where 1 indicates the mass in that position is to be fixed and 0 indicates it is not, defaults to None 
+            1D array of 1s and 0s equal in length to the mass array, where 1 indicates the mass in that position is to be fixed and 0 indicates it is not, defaults to None
+        softening : float
+            float value to define the softening of the system, this ensure correct behaviour of the bodies when the distance between them is particularlly small 
+        tot_iterations : int
+            total number of iterations to run the N_body code for
+        plotting_num : int
+            number of points to plot on the graphs, this will be used to determine how often the results are saved to an array for plotting, this may vary around the given value depending on the given value and total iterations
+
+        
+        Raises
+        ------
+        assertionError:
+            Raised if total number of iterations is smaller than 2 times plotting_num
         """
+        
         
         pos_0 = np.array(pos_0)
         v_0 = np.array(v_0)
@@ -172,40 +185,18 @@ class N_body:
         
         self.a_0 = a(self.pos_0, self.m, self.softening, self.fixed_mass, self.use_grav)
         
+        assert tot_iterations >= (plotting_num * 2), "Total iterations must be larger or equal to 2 times plotting_num"
         self.step = 0
         self.interval = int(tot_iterations/plotting_num)
-        self.plotting_num = int(tot_iterations / self.interval) + 1
+        self.plotting_num = len(np.arange(0,tot_iterations,self.interval))
         self.pos_array = np.zeros(shape = (self.plotting_num, len(self.m), 3))
         self.v_array = np.zeros(shape = (self.plotting_num, len(self.m), 3))
         self.tot_iterations = tot_iterations
         self.iteration_list = []
         self.it_step = 0
-            
-        fig = plt.figure(figsize = (10,16))
-        if np.any(self.v_0[:,2]) == True:
-            self.ax = fig.add_subplot(3,1,1, projection = '3d')
-            self.ax.set_zlabel('Z Position')
-        else:
-            self.ax = fig.add_subplot(3,1,1)
-        self.ax2 = fig.add_subplot(3,1,2)
-        self.ax3 = fig.add_subplot(3,1,3)
-        self.ax.set_xlabel('X Position')
-        self.ax.set_ylabel('Y Position')
-        self.ax.set_title('Orbital Paths for the N-body system')
-        self.ax2.set_xlabel('Iteration')
-        self.ax2.set_ylabel('Angular Momentum Error (%)')
-        self.ax2.set_title('Percentage Angular Momentum Error of the N-body system against iterations')
-        self.ax3.set_xlabel('Iteration')
-        self.ax3.set_ylabel('Energy Error (%)')
-        self.ax3.set_title('Percentage Energy Error of the N-body system against iterations')
     
     def verlet(self):
         """Function to calculate the new velocity and position of the masses using the velocity verlet algorithm
-
-        Parameters
-        ----------
-        softening : float
-            float value to define the softening of the system, this ensure correct behaviour of the bodies when the distance between them is particularlly small
         """
         
         v_step = self.v_0 + 0.5 * self.h * self.a_0
@@ -231,6 +222,13 @@ class N_body:
         self.a_0 = a_cur
     
     def save(self, iteration):
+        """Function to save the specific pos and v values to an array for plotting depending on the number of plotted points desired
+
+        Parameters
+        ----------
+        iteration : int
+            current iteration of the N-body code
+        """
         
         if iteration == 0:
             self.pos_array[self.it_step,:,:] = self.pos_0
@@ -239,16 +237,17 @@ class N_body:
             self.iteration_list.append(iteration)
             self.it_step += 1
         elif iteration == self.step:
-            print(self.step)
             self.pos_array[self.it_step,:,:] = self.pos
             self.v_array[self.it_step,:,:] = self.v
             self.step += int(self.interval)
             self.iteration_list.append(iteration)
             self.it_step += 1
         elif iteration == (self.tot_iterations - 1):
-            self.pos_array[-1,:,:] = self.pos
-            self.v_array[-1,:,:] = self.v
+            # add on the last iteration if it hasn't already ended
+            self.pos_array = np.concatenate([self.pos_array, self.pos[None]]) 
+            self.v_array = np.concatenate([self.v_array, self.v[None]])
             self.iteration_list.append(iteration)
+            self.plotting_num += 1
         else:
             pass
         
@@ -257,24 +256,33 @@ class N_body:
     
     def plot(self):
         """Function to plot the positions of the masses over the orbits, the angular momentum of the system over the orbits, and the energy of the system over the orbits
-
-        Parameters
-        ----------
-        iteration : int
-            current iteration of the N-body code
         """
+        
+        fig = plt.figure(figsize = (10,16), dpi = 200)
+        if np.any(self.v_array[:,:,2]) == True or np.any(self.pos_array[:,:,2]) == True:
+            ax = fig.add_subplot(3,1,1, projection = '3d')
+            ax.set_zlabel('Z Position')
+        else:
+            ax = fig.add_subplot(3,1,1)
+        ax2 = fig.add_subplot(3,1,2)
+        ax3 = fig.add_subplot(3,1,3)
+        ax.set_xlabel('X Position')
+        ax.set_ylabel('Y Position')
+        ax.set_title('Orbital Paths for the N-body system')
+        ax2.set_xlabel('Iteration')
+        ax3.set_xlabel('Iteration')
         
         L = np.zeros(self.plotting_num, dtype = float)
         E = np.zeros(self.plotting_num, dtype = float)
         
         for i in range(len(self.m)):
             if self.fixed_mass[i] == 1:
-                self.ax.scatter(self.pos_array[0,i,0], self.pos_array[0,i,1], color = 'C'+str(i), s = 5)
+                ax.scatter(self.pos_array[0,i,0], self.pos_array[0,i,1], color = 'C'+str(i), s = 5)
             else:
                 if np.any(self.v_array[:,:,2]) == True or np.any(self.pos_array[:,:,2]) == True:
-                    self.ax.plot3D(self.pos_array[:,i,0], self.pos_array[:,i,1], self.pos_array[:,i,2], color = 'C'+str(i))
+                    ax.plot3D(self.pos_array[:,i,0], self.pos_array[:,i,1], self.pos_array[:,i,2], color = 'C'+str(i))
                 else:
-                    self.ax.plot(self.pos_array[:,i,0], self.pos_array[:,i,1], color = 'C'+str(i))
+                    ax.plot(self.pos_array[:,i,0], self.pos_array[:,i,1], color = 'C'+str(i))
         
         for l in range(self.plotting_num):
             L_cur = 0
@@ -289,26 +297,30 @@ class N_body:
             errmod_L = np.zeros(self.plotting_num, dtype = float)
             for i in range(self.plotting_num):
                 errmod_L[i] = np.sqrt(((L[i] - L[0])/L[0])**2)*100
-            self.ax2.plot(self.iteration_list, errmod_L, color = 'C0')
+            ax2.plot(self.iteration_list, errmod_L, color = 'C0')
+            ax2.set_ylabel('Angular Momentum Error (%)')
+            ax2.set_title('Percentage Angular Momentum Error of the N-body system against iterations')
         else:
-            self.ax2.plot(self.iteration_list, L, color = 'C0')
-            self.ax2.set_ylabel('Angular Momentum L')
-            self.ax2.set_title('Angular Momentum of the N-body system against iterations')
+            ax2.plot(self.iteration_list, L, color = 'C0')
+            ax2.set_ylabel('Angular Momentum L')
+            ax2.set_title('Angular Momentum of the N-body system against iterations')
 
         if E[0] != 0:
             errE = np.zeros(self.plotting_num, dtype = float)
             for i in range(self.plotting_num):
                 errE[i] = np.sqrt(((E[i] - E[0])/E[0])**2)*100
-            self.ax3.plot(self.iteration_list, errE, color = 'C0')
+            ax3.plot(self.iteration_list, errE, color = 'C0')
+            ax3.set_ylabel('Energy Error (%)')
+            ax3.set_title('Percentage Energy Error of the N-body system against iterations')
         else:
-            self.ax3.plot(self.iteration_list, E, color = 'C0')
-            self.ax3.set_ylabel('Energy')
-            self.ax3.set_title('Energy of the N-body system against iterations')
+            ax3.plot(self.iteration_list, E, color = 'C0')
+            ax3.set_ylabel('Energy')
+            ax3.set_title('Energy of the N-body system against iterations')
             
     
 
 
-def nbody(iterations, h, position_init, velocity_init, masses, use_grav = True, fixed_mass = None, softening = 0.001, plotting_num = 1001, save_folder = None, savefilename = None):
+def nbody(iterations, h, position_init, velocity_init, masses, use_grav = True, fixed_mass = None, softening = 0.001, plotting_num = 1000, save_folder = None, savefilename = None):
     """Function to perform the full N-body simulation for a given set of masses with their positions and velocities for a given number of iterations
 
     Parameters
@@ -329,6 +341,12 @@ def nbody(iterations, h, position_init, velocity_init, masses, use_grav = True, 
         1D array of 1s and 0s equal in length to the mass array, where 1 indicates the mass in that position is to be fixed and 0 indicates it is not, defaults to None
     softening : float, optional
         float value to define the softening of the system, this ensure correct behaviour of the bodies when the distance between them is particularlly small, defaults to 0.001
+    plotting_num : int, optional
+        number of points to plot on the graphs, this will be used to determine how often the results are saved to an array for plotting, this may vary around the given value depending on the given value and total iterations, defaults to 1000
+    save_folder: str, optional
+        directory to save the convergence plot to, defaults to None
+    savefilename: str, optional
+        filename for the convergence plot, defaults to None
     """
     
     if fixed_mass is None:
