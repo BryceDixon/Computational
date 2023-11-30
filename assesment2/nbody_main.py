@@ -16,7 +16,7 @@ import matplotlib.pyplot as plt
 from mpl_toolkits import mplot3d
 
 
-def a(positions, masses, softening, fixed_mass = None, use_grav = True):
+def a(positions, masses, softening, use_grav = True):
     """
     Function to calculate the gravitational accelerations acting on N number of particles at given positions
 
@@ -28,8 +28,6 @@ def a(positions, masses, softening, fixed_mass = None, use_grav = True):
         1D array of particle masses in order m_1, m_2, ..., etc
     softening : float
         float value to define the softening of the system, this ensure correct behaviour of the bodies when the distance between them is particularlly small
-    fixed_mass : array of ints, optional
-        1D array of 1s and 0s equal in length to the mass array, where 1 indicates the mass in that position is to be fixed and 0 indicates it is not, defaults to None 
     use_grav : bool, optional
         If True, the gravitational constant G will be used in acceleration calculation, If False, G will be treated as 1, essentially giving the answers in terms of G, defaults to True
     
@@ -50,26 +48,19 @@ def a(positions, masses, softening, fixed_mass = None, use_grav = True):
     assert len(positions[0,:]) == 3, "Number of columns in position must be equal to 3, representing x,y,z positions"
     assert np.shape(masses) == (len(positions[:,0]),), "masses must be a 1D array or list of the particle masses and the number of particle masses given must match number of particles in position array"
     
-    if fixed_mass is None:
-        fixed_mass = np.zeros_like(masses, dtype=float)
-    fixed_mass = np.array(fixed_mass)
-    
     a = np.zeros_like(positions, dtype=float)
         
     for i in range(len(positions[:,0])):
-        if fixed_mass[i] == 1.:
-            a[i,:] += 0.
-        else:
-            for k in range(len(positions[:,0])):
-                if i == k:
-                    a[i,:] += 0.
-                else:
-                    # calculate difference in x,y,z positions for particle k and i, will be 0 for when k=i and so not contribute to acceleration
-                    dif_pos = positions[k,:] - positions[i,:]
-                    # calculate r^3 using vector differences, include the softening factor
-                    r = (np.sqrt((np.linalg.norm(dif_pos))**2 + softening**2))**3
-                    # calculate the x,y,z components of acceleration and add them to the acceleration of the ith particle
-                    a[i,:] += ((G * masses[k])/r)*dif_pos
+        for k in range(len(positions[:,0])):
+            if i == k:
+                a[i,:] += 0.
+            else:
+                # calculate difference in x,y,z positions for particle k and i, will be 0 for when k=i and so not contribute to acceleration
+                dif_pos = positions[k,:] - positions[i,:]
+                # calculate r^3 using vector differences, include the softening factor
+                r = (np.sqrt((np.linalg.norm(dif_pos))**2 + softening**2))**3
+                # calculate the x,y,z components of acceleration and add them to the acceleration of the ith particle
+                a[i,:] += ((G * masses[k])/r)*dif_pos
     
     return a 
 
@@ -141,7 +132,7 @@ def E_kin(velocities, masses):
 
 class N_body:
     
-    def __init__(self, h, pos_0, v_0, m, use_grav, fixed_mass, softening, tot_iterations, plotting_num, return_period, per_tolerance):
+    def __init__(self, h, pos_0, v_0, m, use_grav, softening, tot_iterations, plotting_num, return_period, per_tolerance):
         """Class to perform the N-body simulation on a system of particles given the initial positions and velocities of the particles
 
         Parameters
@@ -156,8 +147,6 @@ class N_body:
             1D array of particle masses in order m_1, m_2, ..., etc
         use_grav : bool, optional
             If True, the gravitational constant G will be used in acceleration and potential energy calculation, If False, G will be treated as 1, essentially giving the answers in terms of G, defaults to True
-        fixed_mass : array of ints, optional
-            1D array of 1s and 0s equal in length to the mass array, where 1 indicates the mass in that position is to be fixed and 0 indicates it is not, defaults to None
         softening : float
             float value to define the softening of the system, this ensure correct behaviour of the bodies when the distance between them is particularlly small 
         tot_iterations : int
@@ -176,18 +165,15 @@ class N_body:
         """
         
         
-        pos_0 = np.array(pos_0)
-        v_0 = np.array(v_0)
         self.h = h
-        self.pos_0 = pos_0
-        self.v_0 = v_0
-        self.m = m
+        self.pos_0 = np.array(pos_0)
+        self.v_0 = np.array(v_0)
+        self.m = np.array(m)
         self.use_grav = use_grav
-        self.fixed_mass = fixed_mass
         self.softening = softening
         
         # calculate initial acceleration to be used in the first step of the verlet algorithm
-        self.a_0 = a(self.pos_0, self.m, self.softening, self.fixed_mass, self.use_grav)
+        self.a_0 = a(self.pos_0, self.m, self.softening, self.use_grav)
         
         # set up variables for plotting, this is designed so the user can input a plotting number much smaller than the total iterations, this number will be used to determine how many points are plotted
         assert tot_iterations >= (plotting_num * 2), "Total iterations must be larger or equal to 2 times plotting_num"
@@ -205,27 +191,24 @@ class N_body:
         # sets up calculating the period 
         if return_period == True:
             self.period_array = []
-            for l in range(len(self.fixed_mass)):
-                if self.fixed_mass[l] == 0:
-                    # picks a mass that is not fixed so it actually has a period
-                    self.period_mass = l
-                    if per_tolerance == None:
-                        # sets up a range around the initial position to accept as a potential period value
-                        self.range_up = self.pos_0[l,:] * 1.05
-                        self.range_lo = self.pos_0[l,:] * 0.95
-                        for i in range(len(self.range_up)):
-                            if self.range_up[i] == 0:
-                                # also apply a range to any zeros in the position
-                                self.range_up[i] += np.linalg.norm(self.pos_0[l,:])/20
-                                self.range_lo[i] -= np.linalg.norm(self.pos_0[l,:])/20
-                    else:
-                        # if a range is specified, use that instead
-                        self.range_up = self.pos_0[l,:] * 1.
-                        self.range_lo = self.pos_0[l,:] * 1.
-                        for i in range(len(self.range_up)):
-                            self.range_up[i] += per_tolerance
-                            self.range_lo[i] -= per_tolerance
-                    break
+            # picks the lowest mass to calculate the period for, the period is the same for all masses however depending on the size of the larger masses, their orbits may be very small which may make calculating a period unreliable with the method used
+            self.period_mass = self.m.argmin()
+            if per_tolerance == None:
+                # sets up a range around the initial position to accept as a potential period value
+                self.range_up = self.pos_0[self.period_mass,:] * 1.05
+                self.range_lo = self.pos_0[self.period_mass,:] * 0.95
+                for i in range(len(self.range_up)):
+                    if self.range_up[i] == 0:
+                        # also apply a range to any zeros in the position
+                        self.range_up[i] += np.linalg.norm(self.pos_0[self.period_mass,:])/20
+                        self.range_lo[i] -= np.linalg.norm(self.pos_0[self.period_mass,:])/20
+            else:
+                # if a range is specified, use that instead
+                self.range_up = self.pos_0[self.period_mass,:] * 1.
+                self.range_lo = self.pos_0[self.period_mass,:] * 1.
+                for i in range(len(self.range_up)):
+                    self.range_up[i] += per_tolerance
+                    self.range_lo[i] -= per_tolerance
     
     def verlet(self):
         """Function to calculate the new velocity and position of the masses using the velocity verlet algorithm
@@ -235,22 +218,19 @@ class N_body:
         v_step = self.v_0 + 0.5 * self.h * self.a_0
         pos = self.pos_0 + self.h * v_step
         # calculate the new acceleration, this will become the old acceleration at the end of this function
-        a_cur = a(pos, self.m, self.softening, self.fixed_mass, self.use_grav)
+        a_cur = a(pos, self.m, self.softening, self.use_grav)
         v = v_step + 0.5 * self.h * a_cur
         
-        # if none of the masses are fixed, calculate the change in the center of mass and minus it from the current positions
-        if 1 in self.fixed_mass:
-            pass
-        else:
-            com = 0
-            msum = 0
-            com_0 = 0
-            for i in range(len(self.m)):
-                com_0 += self.m[i] * self.pos_0[i,:]
-                com += self.m[i] * pos[i,:]
-                msum += self.m[i]
-            comdif = (com/msum) - (com_0/msum)
-            pos = pos - comdif
+        # calculate the change in the center of mass and minus it from the current positions
+        com = 0
+        msum = 0
+        com_0 = 0
+        for i in range(len(self.m)):
+            com_0 += self.m[i] * self.pos_0[i,:]
+            com += self.m[i] * pos[i,:]
+            msum += self.m[i]
+        comdif = (com/msum) - (com_0/msum)
+        pos = pos - comdif
     
         # current positions and velocities are updated, and the old acceleration is set to the current
         self.v = v
@@ -302,8 +282,14 @@ class N_body:
         self.v_0 = self.v
         
     
-    def plot(self):
+    def plot(self, ref_frame):
         """Function to plot the positions of the masses over the orbits, the angular momentum of the system over the orbits and the energy of the system over the orbits
+        
+        Parameters
+        ----------
+        ref_frame : int
+            integer indicating the frame of reference to plot the system in, 1 to set the frame of reference to particle 1, 2 to set the frame of reference to particle 2, ..., etc
+
         """
         
         # set up plots, if a z component is present in the positions or velocities then plot the orbits in 3D
@@ -324,37 +310,32 @@ class N_body:
         L = np.zeros(self.plotting_num, dtype = float)
         E = np.zeros(self.plotting_num, dtype = float)
         
-        # create a list of center of mass points corresponding to the positions, this should be a list of identical arrays as we have previously subtracted the difference in center of masses
-        # if one or more of the masses is fixed, this will work out the center of mass each time which can be used to correct for the angular momentum 
-        com_list = np.zeros(shape = (self.plotting_num,1,3))    
-        for l in range(self.plotting_num):
-            com = 0
-            msum = 0
-            for i in range(len(self.m)):
-                com += self.m[i] * self.pos_array[l,i,:]
-                msum += self.m[i]
-            accom = (com/msum)
-            com_list[l,0,:] = accom
-        
-        # plot the orbits
+        # plot the orbits depending on whether they should be 3d or not and if they are to be plotted based on a certain frame of reference
         for i in range(len(self.m)):
-            if self.fixed_mass[i] == 1:
-                ax.scatter(self.pos_array[0,i,0], self.pos_array[0,i,1], color = 'C'+str(i), s = 5)
+            if ref_frame is not None:
+                if i == ref_frame-1:
+                    if np.any(self.v_array[:,:,2]) == True or np.any(self.pos_array[:,:,2]) == True:
+                        ax.scatter3D(self.pos_array[0,i,0]-self.pos_array[0,i,0], self.pos_array[0,i,1]-self.pos_array[0,i,1], self.pos_array[0,i,2]-self.pos_array[0,i,2], color = 'C'+str(i), s = 5, label = "Particle {}, with mass {} kg".format(i+1, self.m[i]))
+                    else:
+                        ax.scatter(self.pos_array[0,i,0]-self.pos_array[0,i,0], self.pos_array[0,i,1]-self.pos_array[0,i,1], color = 'C'+str(i), s = 5, label = "Particle {}, with mass {} kg".format(i+1, self.m[i]))
+                else:
+                    if np.any(self.v_array[:,:,2]) == True or np.any(self.pos_array[:,:,2]) == True:
+                        ax.plot3D(self.pos_array[:,i,0]-self.pos_array[:,ref_frame-1,0], self.pos_array[:,i,1]-self.pos_array[:,ref_frame-1,1], self.pos_array[:,i,2]-self.pos_array[:,ref_frame-1,2], color = 'C'+str(i), label = "Particle {}, with mass {} kg".format(i+1, self.m[i]))
+                    else:
+                        ax.plot(self.pos_array[:,i,0]-self.pos_array[:,ref_frame-1,0], self.pos_array[:,i,1]-self.pos_array[:,ref_frame-1,1], color = 'C'+str(i), label = "Particle {}, with mass {} kg".format(i+1, self.m[i]))
+                    
             else:
                 if np.any(self.v_array[:,:,2]) == True or np.any(self.pos_array[:,:,2]) == True:
-                    ax.plot3D(self.pos_array[:,i,0], self.pos_array[:,i,1], self.pos_array[:,i,2], color = 'C'+str(i))
+                    ax.plot3D(self.pos_array[:,i,0], self.pos_array[:,i,1], self.pos_array[:,i,2], color = 'C'+str(i), label = "Particle {}, with mass {} kg".format(i+1, self.m[i]))
                 else:
-                    ax.plot(self.pos_array[:,i,0], self.pos_array[:,i,1], color = 'C'+str(i))
+                    ax.plot(self.pos_array[:,i,0], self.pos_array[:,i,1], color = 'C'+str(i), label = "Particle {}, with mass {} kg".format(i+1, self.m[i]))
+        ax.legend()
         
         # calculate the angular momentum, adding the components for each mass then normalising
         for l in range(self.plotting_num):
             L_cur = 0
             for i in range(len(self.m)):
-                # calculate the angular momentum about the center of mass point for the 2 body system with a fixed mass, this will correct the momentum if there is an offset fixed mass
-                if len(self.m) == 2 and 1 in self.fixed_mass:
-                    L_cur += np.cross(self.pos_array[l,i,:]-com_list[l,0,:], self.m[i] * self.v_array[l,i,:])
-                else:
-                    L_cur += np.cross(self.pos_array[l,i,:], self.m[i] * self.v_array[l,i,:])
+                L_cur += np.cross(self.pos_array[l,i,:], self.m[i] * self.v_array[l,i,:])
             L[l] = np.linalg.norm(L_cur)
         
         # calculate energy
@@ -386,6 +367,8 @@ class N_body:
             ax3.plot(self.iteration_list, E, color = 'C0')
             ax3.set_ylabel('Energy')
             ax3.set_title('Energy of the N-body system against time')
+        
+        self.ref_frame = ref_frame
             
         
     
@@ -429,7 +412,7 @@ class N_body:
     
 
 
-def nbody(time, h, position_init, velocity_init, masses, use_grav = True, fixed_mass = None, softening = 0.001, plotting_num = 1000, return_period = False, per_tolerance = None, return_semi_major_axis = False, save_folder = None, savefilename = None):
+def nbody(time, h, position_init, velocity_init, masses, use_grav = True, ref_frame = None, softening = 0.001, plotting_num = 1000, return_period = False, per_tolerance = None, return_semi_major_axis = False, save_folder = None, savefilename = None):
     """Function to perform the full N-body simulation for a given set of masses with their positions and velocities for a given number of iterations
 
     Parameters
@@ -437,7 +420,7 @@ def nbody(time, h, position_init, velocity_init, masses, use_grav = True, fixed_
     time : int
         total time in seconds to simulate the system over
     h : float
-        size of the time step to use in velocity verlet method
+        size of the time step to use in velocity verlet method in seconds
     position_init : array of floats
         2D array of floats with 3 columns representing initial x,y,z positions in meters and N rows representing each particle
     velocity_init : array of floats
@@ -446,8 +429,8 @@ def nbody(time, h, position_init, velocity_init, masses, use_grav = True, fixed_
         1D array of particle masses in kg in order m_1, m_2, ..., etc
     use_grav : bool, optional
         If True, the gravitational constant G will be used in acceleration and potential energy calculation, If False, G will be treated as 1, essentially giving the answers in terms of G, defaults to True
-    fixed_mass : array of ints, optional
-        1D array of 1s and 0s equal in length to the mass array, where 1 indicates the mass in that position is to be fixed and 0 indicates it is not, defaults to None
+    ref_frame : int, optional
+        integer indicating the frame of reference to plot the system in, 1 to set the frame of reference to particle 1, 2 to set the frame of reference to particle 2, ..., etc, defaults to None
     softening : float, optional
         float value to define the softening of the system, this ensure correct behaviour of the bodies when the distance between them is particularlly small, defaults to 0.001
     plotting_num : int, optional
@@ -465,30 +448,29 @@ def nbody(time, h, position_init, velocity_init, masses, use_grav = True, fixed_
     
     Raises
     ------
+    AssertionError:
+        Raised if ref_frame is not an integer
     ValueError:
-        Raised if the x,y,z velocities of any of the fixed masses are not 0
+        Raised if ref_frame does not correspond to any of the given masses
     ValueError:
         Raised if return_period is False and return_semi_major_axis is True, period must be returned to return semi-major axis
     """
     
-    if fixed_mass is None:
-        fixed_mass = np.zeros_like(masses, dtype=float)
-    fixed_mass = np.array(fixed_mass)
-    
-    for i in range(len(fixed_mass)):
-        if fixed_mass[i] == 1 and np.any(velocity_init[i,:]) == True:
-            raise ValueError("The x,y,z velocities of the fixed mass must all be 0")
+    if ref_frame is not None:
+        assert type(ref_frame) == int, "ref_frame must be an integer"
+        if ref_frame > len(masses) or ref_frame < 1:
+            raise ValueError("ref_frame must be a non-zero positive integer corresponding to one of the masses")
     
     if return_period == False and return_semi_major_axis == True:
         raise ValueError("The period must be returned in order to return the semi-major axis")
             
     iterations = int(time/h)
         
-    N = N_body(h, position_init, velocity_init, masses, use_grav, fixed_mass, softening, iterations, plotting_num, return_period, per_tolerance)
+    N = N_body(h, position_init, velocity_init, masses, use_grav, softening, iterations, plotting_num, return_period, per_tolerance)
     for i in range(iterations):
         N.verlet()
         N.save(i)
-    N.plot()
+    N.plot(ref_frame)
     if return_period == True:
         N.return_period()
     if return_semi_major_axis == True:
