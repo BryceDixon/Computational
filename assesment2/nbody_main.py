@@ -329,7 +329,7 @@ class N_body:
                     ax.plot3D(self.pos_array[:,i,0], self.pos_array[:,i,1], self.pos_array[:,i,2], color = 'C'+str(i), label = "Particle {}, with mass {} kg".format(i+1, self.m[i]))
                 else:
                     ax.plot(self.pos_array[:,i,0], self.pos_array[:,i,1], color = 'C'+str(i), label = "Particle {}, with mass {} kg".format(i+1, self.m[i]))
-        ax.legend()
+        ax.legend(bbox_to_anchor=(1.3, 1), loc='upper right', borderaxespad=0, fontsize = 10)
         
         # calculate the angular momentum, adding the components for each mass then normalising
         for l in range(self.plotting_num):
