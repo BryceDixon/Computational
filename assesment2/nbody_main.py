@@ -3,7 +3,16 @@ Assessment 2 - N-body code
 Main code for the N-body algorithm
 
 Contains:
-
+    accel function
+    E_pot function
+    E_kin function
+    N_body class
+        verlet function
+        save function
+        plot function
+        return_period funciton
+        return_semi_major_axis function
+    nbody function
 
 Author: Bryce Dixon
 Version: 15/11/2023    
@@ -16,7 +25,7 @@ import matplotlib.pyplot as plt
 from mpl_toolkits import mplot3d
 
 
-def a(positions, masses, softening, use_grav = True):
+def accel(positions, masses, softening, use_grav = True):
     """
     Function to calculate the gravitational accelerations acting on N number of particles at given positions
 
@@ -52,15 +61,12 @@ def a(positions, masses, softening, use_grav = True):
         
     for i in range(len(positions[:,0])):
         for k in range(len(positions[:,0])):
-            if i == k:
-                a[i,:] += 0.
-            else:
-                # calculate difference in x,y,z positions for particle k and i, will be 0 for when k=i and so not contribute to acceleration
-                dif_pos = positions[k,:] - positions[i,:]
-                # calculate r^3 using vector differences, include the softening factor
-                r = (np.sqrt((np.linalg.norm(dif_pos))**2 + softening**2))**3
-                # calculate the x,y,z components of acceleration and add them to the acceleration of the ith particle
-                a[i,:] += ((G * masses[k])/r)*dif_pos
+            # calculate difference in x,y,z positions for particle k and i, will be 0 for when k=i and so not contribute to acceleration
+            dif_pos = positions[k,:] - positions[i,:]
+            # calculate r^3 using vector differences, include the softening factor
+            r = (np.sqrt((np.linalg.norm(dif_pos))**2 + softening**2))**3
+            # calculate the x,y,z components of acceleration and add them to the acceleration of the ith particle
+            a[i,:] += ((G * masses[k])/r)*dif_pos
     
     return a 
 
@@ -173,7 +179,7 @@ class N_body:
         self.softening = softening
         
         # calculate initial acceleration to be used in the first step of the verlet algorithm
-        self.a_0 = a(self.pos_0, self.m, self.softening, self.use_grav)
+        self.a_0 = accel(self.pos_0, self.m, self.softening, self.use_grav)
         
         # set up variables for plotting, this is designed so the user can input a plotting number much smaller than the total iterations, this number will be used to determine how many points are plotted
         assert tot_iterations >= (plotting_num * 2), "Total iterations must be larger or equal to 2 times plotting_num"
@@ -218,7 +224,7 @@ class N_body:
         v_step = self.v_0 + 0.5 * self.h * self.a_0
         pos = self.pos_0 + self.h * v_step
         # calculate the new acceleration, this will become the old acceleration at the end of this function
-        a_cur = a(pos, self.m, self.softening, self.use_grav)
+        a_cur = accel(pos, self.m, self.softening, self.use_grav)
         v = v_step + 0.5 * self.h * a_cur
         
         # calculate the change in the center of mass and minus it from the current positions
@@ -258,13 +264,13 @@ class N_body:
             self.pos_array[self.it_step,:,:] = self.pos
             self.v_array[self.it_step,:,:] = self.v
             self.step += int(self.interval)
-            self.iteration_list.append(iteration*self.h)
+            self.iteration_list.append((iteration+1)*self.h)
             self.it_step += 1
         elif iteration == (self.tot_iterations - 1):
             # add on the last iteration if it hasn't already ended
             self.pos_array = np.concatenate([self.pos_array, self.pos[None]]) 
             self.v_array = np.concatenate([self.v_array, self.v[None]])
-            self.iteration_list.append(iteration*self.h)
+            self.iteration_list.append((iteration+1)*self.h)
             self.plotting_num += 1
         else:
             pass
@@ -272,7 +278,7 @@ class N_body:
         # if the period calculation has been set up, check if all the x,y,z positions for the selected mass are within the specified range and append the iteration to a list if that is the case
         try:
             if self.pos[self.period_mass,0] <= self.range_up[0] and self.pos[self.period_mass,1] <= self.range_up[1] and self.pos[self.period_mass,2] <= self.range_up[2] and self.pos[self.period_mass,0] >= self.range_lo[0] and self.pos[self.period_mass,1] >= self.range_lo[1] and self.pos[self.period_mass,2] >= self.range_lo[2]:
-                self.period_array.append(iteration)
+                self.period_array.append(iteration+1)
                 # period_array should end up being a list of every iteration within the range, this will include points before and after the period, points aat multiples of periods, and points at the beginning
         except:
             pass
@@ -299,6 +305,7 @@ class N_body:
             ax.set_zlabel('Z Position')
         else:
             ax = fig.add_subplot(3,1,1)
+            ax.axis('equal')
         ax2 = fig.add_subplot(3,1,2)
         ax3 = fig.add_subplot(3,1,3)
         ax.set_xlabel('X Position')
@@ -329,7 +336,7 @@ class N_body:
                     ax.plot3D(self.pos_array[:,i,0], self.pos_array[:,i,1], self.pos_array[:,i,2], color = 'C'+str(i), label = "Particle {}, with mass {} kg".format(i+1, self.m[i]))
                 else:
                     ax.plot(self.pos_array[:,i,0], self.pos_array[:,i,1], color = 'C'+str(i), label = "Particle {}, with mass {} kg".format(i+1, self.m[i]))
-        ax.legend(bbox_to_anchor=(1.3, 1), loc='upper right', borderaxespad=0, fontsize = 10)
+        ax.legend(bbox_to_anchor=(1.01, 1), loc='upper left', borderaxespad=0, fontsize = 10)
         
         # calculate the angular momentum, adding the components for each mass then normalising
         for l in range(self.plotting_num):
@@ -367,8 +374,6 @@ class N_body:
             ax3.plot(self.iteration_list, E, color = 'C0')
             ax3.set_ylabel('Energy')
             ax3.set_title('Energy of the N-body system against time')
-        
-        self.ref_frame = ref_frame
             
         
     
