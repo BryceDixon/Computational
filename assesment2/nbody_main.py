@@ -27,14 +27,14 @@ from mpl_toolkits import mplot3d
 
 def accel(positions, masses, softening, use_grav = True):
     """
-    Function to calculate the gravitational accelerations acting on N number of particles at given positions
+    Function to calculate the gravitational accelerations acting on N number of masses at given positions
 
     Parameters
     ----------
     positions : array of floats
-        2D array of floats with 3 columns representing x,y,z positions and N rows representing each particle
+        2D array of floats with 3 columns representing x,y,z positions and N rows representing each mass
     masses : array of floats
-        1D array of particle masses in order m_1, m_2, ..., etc
+        1D array of object masses in order m_1, m_2, ..., etc
     softening : float
         float value to define the softening of the system, this ensure correct behaviour of the bodies when the distance between them is particularlly small
     use_grav : bool, optional
@@ -43,7 +43,7 @@ def accel(positions, masses, softening, use_grav = True):
     Returns
     -------
     a : array of floats
-        2D array of accellerations with 3 columns representing x,y,z accelerations and N rows representing each particle
+        2D array of accellerations with 3 columns representing x,y,z accelerations and N rows representing each mass
     """
     
     if use_grav is True:
@@ -55,17 +55,17 @@ def accel(positions, masses, softening, use_grav = True):
     masses = np.array(masses, dtype=float)
     
     assert len(positions[0,:]) == 3, "Number of columns in position must be equal to 3, representing x,y,z positions"
-    assert np.shape(masses) == (len(positions[:,0]),), "masses must be a 1D array or list of the particle masses and the number of particle masses given must match number of particles in position array"
+    assert np.shape(masses) == (len(positions[:,0]),), "masses must be a 1D array or list of the object masses and the number of masses given must match number of masses in position array"
     
     a = np.zeros_like(positions, dtype=float)
         
     for i in range(len(positions[:,0])):
         for k in range(len(positions[:,0])):
-            # calculate difference in x,y,z positions for particle k and i, will be 0 for when k=i and so not contribute to acceleration
+            # calculate difference in x,y,z positions for mass k and i, will be 0 for when k=i and so not contribute to acceleration
             dif_pos = positions[k,:] - positions[i,:]
             # calculate r^3 using vector differences, include the softening factor
             r = (np.sqrt((np.linalg.norm(dif_pos))**2 + softening**2))**3
-            # calculate the x,y,z components of acceleration and add them to the acceleration of the ith particle
+            # calculate the x,y,z components of acceleration and add them to the acceleration of the ith mass
             a[i,:] += ((G * masses[k])/r)*dif_pos
     
     return a 
@@ -73,14 +73,14 @@ def accel(positions, masses, softening, use_grav = True):
 
 def E_pot(positions, masses, softening, use_grav = True):
     """
-    Function to calculate the gravitational potential energy the system at the given particle positions
+    Function to calculate the gravitational potential energy of the system at the given mass positions
 
     Parameters
     ----------
     positions : array of floats
-        2D array of floats with 3 columns representing x,y,z positions and N rows representing each particle
+        2D array of floats with 3 columns representing x,y,z positions and N rows representing each mass
     masses : array of floats
-        1D array of particle masses in order m_1, m_2, ..., etc
+        1D array of object masses in order m_1, m_2, ..., etc
     use_grav : bool, optional
         If True, the gravitational constant G will be used in the energy calculation, If False, G will be treated as 1, essentially giving the answers in terms of G, defaults to True
     
@@ -110,14 +110,14 @@ def E_pot(positions, masses, softening, use_grav = True):
 
 def E_kin(velocities, masses):
     """
-    Function to calculate the total kinetic energy of the system at the given particle velocities
+    Function to calculate the total kinetic energy of the system at the mass velocities
 
     Parameters
     ----------
     velocities : array  of floats
-        2D array of floats with 3 columns representing initial x,y,z velocities and N rows representing each particle
+        2D array of floats with 3 columns representing initial x,y,z velocities and N rows representing each mass
     masses : array of floats
-        1D array of particle masses in order m_1, m_2, ..., etc
+        1D array of object masses in order m_1, m_2, ..., etc
 
     Returns
     -------
@@ -139,18 +139,18 @@ def E_kin(velocities, masses):
 class N_body:
     
     def __init__(self, h, pos_0, v_0, m, use_grav, softening, tot_iterations, plotting_num, return_period, per_tolerance):
-        """Class to perform the N-body simulation on a system of particles given the initial positions and velocities of the particles
+        """Class to perform the N-body simulation on a system of masses given the initial positions and velocities of the masses
 
         Parameters
         ----------
         h : float
             size of the time step to use in velocity verlet method
         pos_0 :  array of floats
-            2D array of floats with 3 columns representing initial x,y,z positions and N rows representing each particle
+            2D array of floats with 3 columns representing initial x,y,z positions and N rows representing each mass
         v_0 : array  of floats
-            2D array of floats with 3 columns representing initial x,y,z velocities and N rows representing each particle
+            2D array of floats with 3 columns representing initial x,y,z velocities and N rows representing each mass
         m : array of floats
-            1D array of particle masses in order m_1, m_2, ..., etc
+            1D array of object masses in order m_1, m_2, ..., etc
         use_grav : bool, optional
             If True, the gravitational constant G will be used in acceleration and potential energy calculation, If False, G will be treated as 1, essentially giving the answers in terms of G, defaults to True
         softening : float
@@ -167,6 +167,12 @@ class N_body:
         Raises
         ------
         assertionError:
+            Raised if pos_0 does not have 3 columns
+        assertionError:
+            Raised if pos_0 and v_0 are different shapes
+        assertionError:
+            Raised if m is not the same length as the number or rows in pos_0
+        assertionError:
             Raised if total number of iterations is smaller than 2 times plotting_num
         """
         
@@ -177,6 +183,10 @@ class N_body:
         self.m = np.array(m)
         self.use_grav = use_grav
         self.softening = softening
+        
+        assert len(self.pos_0[0,:]) == 3, "pos_0 must have 3 columns (position elements x,y,z)"
+        assert np.shape(self.pos_0) == np.shape(self.v_0), "pos_0 and v_0 must have the same shape, 3 columns representing x,y,z position or velocities, and rows representing masses"
+        assert np.shape(self.m) == (len(self.pos_0[:,0]),), "m should be a 1D array of object masses of the same length of the number of rows as pos_0 and v_0"
         
         # calculate initial acceleration to be used in the first step of the verlet algorithm
         self.a_0 = accel(self.pos_0, self.m, self.softening, self.use_grav)
@@ -288,13 +298,17 @@ class N_body:
         self.v_0 = self.v
         
     
-    def plot(self, ref_frame):
+    def plot(self, ref_frame, percent_L, percent_E):
         """Function to plot the positions of the masses over the orbits, the angular momentum of the system over the orbits and the energy of the system over the orbits
         
         Parameters
         ----------
         ref_frame : int
-            integer indicating the frame of reference to plot the system in, 1 to set the frame of reference to particle 1, 2 to set the frame of reference to particle 2, ..., etc
+            integer indicating the frame of reference to plot the system in, 1 to set the frame of reference to mass 1, 2 to set the frame of reference to mass 2, ..., etc
+        percent_L : bool
+            if True, return the angular momentum plot as a percentage difference from the initial value (if possible), if False, return the angular momentum plot as the actual values
+        percent_E : bool
+            if True, return the energy plot as a percentage difference from the initial value (if possible), if False, return the energy plot as the actual values
 
         """
         
@@ -322,20 +336,20 @@ class N_body:
             if ref_frame is not None:
                 if i == ref_frame-1:
                     if np.any(self.v_array[:,:,2]) == True or np.any(self.pos_array[:,:,2]) == True:
-                        ax.scatter3D(self.pos_array[0,i,0]-self.pos_array[0,i,0], self.pos_array[0,i,1]-self.pos_array[0,i,1], self.pos_array[0,i,2]-self.pos_array[0,i,2], color = 'C'+str(i), s = 5, label = "Particle {}, with mass {} kg".format(i+1, self.m[i]))
+                        ax.scatter3D(self.pos_array[0,i,0]-self.pos_array[0,i,0], self.pos_array[0,i,1]-self.pos_array[0,i,1], self.pos_array[0,i,2]-self.pos_array[0,i,2], color = 'C'+str(i), s = 5, label = "Mass {}, {} kg".format(i+1, self.m[i]))
                     else:
-                        ax.scatter(self.pos_array[0,i,0]-self.pos_array[0,i,0], self.pos_array[0,i,1]-self.pos_array[0,i,1], color = 'C'+str(i), s = 5, label = "Particle {}, with mass {} kg".format(i+1, self.m[i]))
+                        ax.scatter(self.pos_array[0,i,0]-self.pos_array[0,i,0], self.pos_array[0,i,1]-self.pos_array[0,i,1], color = 'C'+str(i), s = 5, label = "Mass {}, {} kg".format(i+1, self.m[i]))
                 else:
                     if np.any(self.v_array[:,:,2]) == True or np.any(self.pos_array[:,:,2]) == True:
-                        ax.plot3D(self.pos_array[:,i,0]-self.pos_array[:,ref_frame-1,0], self.pos_array[:,i,1]-self.pos_array[:,ref_frame-1,1], self.pos_array[:,i,2]-self.pos_array[:,ref_frame-1,2], color = 'C'+str(i), label = "Particle {}, with mass {} kg".format(i+1, self.m[i]))
+                        ax.plot3D(self.pos_array[:,i,0]-self.pos_array[:,ref_frame-1,0], self.pos_array[:,i,1]-self.pos_array[:,ref_frame-1,1], self.pos_array[:,i,2]-self.pos_array[:,ref_frame-1,2], color = 'C'+str(i), label = "Mass {}, {} kg".format(i+1, self.m[i]))
                     else:
-                        ax.plot(self.pos_array[:,i,0]-self.pos_array[:,ref_frame-1,0], self.pos_array[:,i,1]-self.pos_array[:,ref_frame-1,1], color = 'C'+str(i), label = "Particle {}, with mass {} kg".format(i+1, self.m[i]))
+                        ax.plot(self.pos_array[:,i,0]-self.pos_array[:,ref_frame-1,0], self.pos_array[:,i,1]-self.pos_array[:,ref_frame-1,1], color = 'C'+str(i), label = "Mass {}, {} kg".format(i+1, self.m[i]))
                     
             else:
                 if np.any(self.v_array[:,:,2]) == True or np.any(self.pos_array[:,:,2]) == True:
-                    ax.plot3D(self.pos_array[:,i,0], self.pos_array[:,i,1], self.pos_array[:,i,2], color = 'C'+str(i), label = "Particle {}, with mass {} kg".format(i+1, self.m[i]))
+                    ax.plot3D(self.pos_array[:,i,0], self.pos_array[:,i,1], self.pos_array[:,i,2], color = 'C'+str(i), label = "Mass {}, {} kg".format(i+1, self.m[i]))
                 else:
-                    ax.plot(self.pos_array[:,i,0], self.pos_array[:,i,1], color = 'C'+str(i), label = "Particle {}, with mass {} kg".format(i+1, self.m[i]))
+                    ax.plot(self.pos_array[:,i,0], self.pos_array[:,i,1], color = 'C'+str(i), label = "Mass {}, {} kg".format(i+1, self.m[i]))
         ax.legend(bbox_to_anchor=(1.01, 1), loc='upper left', borderaxespad=0, fontsize = 10)
         
         # calculate the angular momentum, adding the components for each mass then normalising
@@ -349,7 +363,7 @@ class N_body:
         for i in range(self.plotting_num):
             E[i] = E_pot(self.pos_array[i,:,:], self.m, self.softening, self.use_grav) + E_kin(self.v_array[i,:,:], self.m)
         
-        if L[0] != 0:
+        if L[0] != 0 and percent_L == True:
             # if the initial angular momentum is not 0, calculate percentage error in angular momentum and plot
             errmod_L = np.zeros(self.plotting_num, dtype = float)
             for i in range(self.plotting_num):
@@ -362,7 +376,7 @@ class N_body:
             ax2.set_ylabel('Angular Momentum L')
             ax2.set_title('Angular Momentum of the N-body system against time')
 
-        if E[0] != 0:
+        if E[0] != 0 and percent_E == True:
             # similar for the energy
             errE = np.zeros(self.plotting_num, dtype = float)
             for i in range(self.plotting_num):
@@ -397,7 +411,7 @@ class N_body:
         
     
     def return_semi_major_axis(self):
-        """Function to return the semi-major axis of each particle in the N-body system
+        """Function to return the semi-major axis of each mass in the N-body system
         """
         
         # obtain the index of the iteration list closest to the period adn use that to mark out when one period has been completed
@@ -411,13 +425,13 @@ class N_body:
                     dif = np.linalg.norm(self.pos_array[i, k, :] - self.pos_array[l, k, :])
                     axis_list.append(dif)
             major_axis = np.max(axis_list)
-            print("Particle {} Semi-Major Axis = {}".format(k+1, major_axis/2))
+            print("Mass {} Semi-Major Axis = {}".format(k+1, major_axis/2))
             
             
     
 
 
-def nbody(time, h, position_init, velocity_init, masses, use_grav = True, ref_frame = None, softening = 0.001, plotting_num = 1000, return_period = False, per_tolerance = None, return_semi_major_axis = False, save_folder = None, savefilename = None):
+def nbody(time, h, position_init, velocity_init, masses, use_grav = True, ref_frame = None, softening = 0.001, plotting_num = 1000, return_period = False, per_tolerance = None, return_semi_major_axis = False, percent_L = True, percent_E = True, save_folder = None, savefilename = None):
     """Function to perform the full N-body simulation for a given set of masses with their positions and velocities for a given number of iterations
 
     Parameters
@@ -427,15 +441,15 @@ def nbody(time, h, position_init, velocity_init, masses, use_grav = True, ref_fr
     h : float
         size of the time step to use in velocity verlet method in seconds
     position_init : array of floats
-        2D array of floats with 3 columns representing initial x,y,z positions in meters and N rows representing each particle
+        2D array of floats with 3 columns representing initial x,y,z positions in meters and N rows representing each mass
     velocity_init : array of floats
-        2D array of floats with 3 columns representing initial x,y,z velocities in meters per second and N rows representing each particle
+        2D array of floats with 3 columns representing initial x,y,z velocities in meters per second and N rows representing each mass
     masses : array of floats
-        1D array of particle masses in kg in order m_1, m_2, ..., etc
+        1D array of object masses in kg in order m_1, m_2, ..., etc
     use_grav : bool, optional
         If True, the gravitational constant G will be used in acceleration and potential energy calculation, If False, G will be treated as 1, essentially giving the answers in terms of G, defaults to True
     ref_frame : int, optional
-        integer indicating the frame of reference to plot the system in, 1 to set the frame of reference to particle 1, 2 to set the frame of reference to particle 2, ..., etc, defaults to None
+        integer indicating the frame of reference to plot the system in, 1 to set the frame of reference to mass 1, 2 to set the frame of reference to mass 2, ..., etc, defaults to None
     softening : float, optional
         float value to define the softening of the system, this ensure correct behaviour of the bodies when the distance between them is particularlly small, defaults to 0.001
     plotting_num : int, optional
@@ -443,9 +457,13 @@ def nbody(time, h, position_init, velocity_init, masses, use_grav = True, ref_fr
     return_period : bool, optional
         if True, return the period of the N-body system, if False, do not return the period, defaults to False
     per_tolerance : float, optional
-        tolerance on the period estimate, if None is entered tolerance will be 0.5%, should choose a sensible value based on the initial position, for example if the initial position is 1, a sensible value would be 0.05, this is not a percentage, if this is set too low a period may not be found, this must be set if the initial position of particle 1 is 0,0,0, defaults to None
+        tolerance on the period estimate, if None is entered tolerance will be 0.5%, should choose a sensible value based on the initial position, for example if the initial position is 1, a sensible value would be 0.05, this is not a percentage, if this is set too low a period may not be found, this must be set if the initial position the lowest mass is 0,0,0, defaults to None
     return_semi_major_axis : bool, optional
-        if True, return the semi-major axis of each particle and return_period must also be True, if False, do not return the semi-major axes, will calculate for systems larger than 2 bodies but will be incorrect if the orbit is not elliptical, defaults to False
+        if True, return the semi-major axis of each mass and return_period must also be True, if False, do not return the semi-major axes, will calculate for systems larger than 2 bodies but will be incorrect if the orbit is not elliptical, defaults to False
+    percent_L : bool, optional
+        if True, return the angular momentum plot as a percentage difference from the initial value (if possible), if False, return the angular momentum plot as the actual values, defaults to True
+    percent_E : bool, optional
+        if True, return the energy plot as a percentage difference from the initial value (if possible), if False, return the energy plot as the actual values, defaults to True
     save_folder: str, optional
         directory to save the convergence plot to, defaults to None
     savefilename: str, optional
@@ -475,7 +493,7 @@ def nbody(time, h, position_init, velocity_init, masses, use_grav = True, ref_fr
     for i in range(iterations):
         N.verlet()
         N.save(i)
-    N.plot(ref_frame)
+    N.plot(ref_frame, percent_L, percent_E)
     if return_period == True:
         N.return_period()
     if return_semi_major_axis == True:
