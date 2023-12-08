@@ -15,7 +15,7 @@ Contains:
     nbody function
 
 Author: Bryce Dixon
-Version: 15/11/2023    
+Version: 07/12/2023    
 """
 
 
