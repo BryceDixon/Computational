@@ -11,6 +11,7 @@ This is a temporary script file.
 #
 import numpy as np
 import matplotlib.pyplot as plt
+from scipy.integrate import RK45 as RK
 
 # spring constants and masses
 
@@ -21,7 +22,7 @@ omega = np.sqrt(k/m)
 # this is the coupled ODEs. y is now an array of 4 values, and dydt returns
 # an array as well
 
-def dydt(y):
+def dydt(t,y):
     
     dydt_array = np.zeros(4)
     
@@ -78,23 +79,30 @@ n = int(tEnd/period)
 xdots = np.linspace(0.,n*period,n+1)
 ydots = np.zeros(n+1)
 
+runga = RK(dydt, time, y, tEnd, max_step = 1, first_step = 0.01, atol = 1e-8, rtol = 1e-6)
 # the time loop
+num = 0
+print(num)
 while (time < tEnd):
     
+    runga.step()
     # call the integrator and step forward in time
-    y = rungaKutta(y,h)
-    time = time + h
+    y_vals = runga.y
+    time_vals = time + runga.t
     
     # append the mass positions and time to arrays for plotting 
-    x1= np.append(x1,y[2])
-    x2= np.append(x2,y[3])
-    timeArray = np.append(timeArray, time)
-    
+    x1= np.append(x1,y_vals[2])
+    x2= np.append(x2,y_vals[3])
+    timeArray = np.append(timeArray, time_vals)
+    num+=1
+    print(num)
     # calculate the total energy
-    energy = 0.5*k*y[2]**2 + 0.5*k*y[3]**2 + 0.5*m*y[0]**2 + 0.5*m*y[1]**2 + 0.5*k*(y[2]-y[3])**2
+    energy = 0.5*k*y_vals[2]**2 + 0.5*k*y_vals[3]**2 + 0.5*m*y_vals[0]**2 + 0.5*m*y_vals[1]**2 + 0.5*k*(y_vals[2]-y_vals[3])**2
     
     # report the current energy as a relative deviations from the initial energy
     print("Relative Energy error:", energy/initialEnergy-1)
+    if runga.status == 'finished':
+        break
 
 # plot the results
 fig,ax =  plt.subplots()
