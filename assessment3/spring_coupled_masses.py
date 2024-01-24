@@ -79,7 +79,7 @@ n = int(tEnd/period)
 xdots = np.linspace(0.,n*period,n+1)
 ydots = np.zeros(n+1)
 
-runga = RK(dydt, time, y, tEnd, max_step = 1, first_step = 0.01, atol = 1e-8, rtol = 1e-6)
+runga = RK(dydt, time, y, tEnd, max_step = 10, first_step = 0.01, atol = 1e-8, rtol = 1e-6)
 # the time loop
 num = 0
 print(num)
