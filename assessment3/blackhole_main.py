@@ -137,9 +137,6 @@ class bh_path:
             ax1.set_xlabel('Proper Time /s')
             ax1.set_ylabel('Percentage Difference /%')
             ax1.set_title('Percentage Difference in the Conserved Quantity $c^2$ against Proper Time')
-        
-        self.x = x
-        self.y = y
     
     def kep_check(self):
         
@@ -150,6 +147,17 @@ class bh_path:
         
         semi_major_axis = np.max(self.y_values[:,2])
         print("Semi Major Axis = {} Meters".format(semi_major_axis))
+        
+        if self.use_const == True:
+            G = G_grav
+        else:
+            G = 1
+        M = self.y_values[0,6]
+        kep = (4 * np.pi**2)/(G * M)
+        com_kep = (np.float64(period)**2)/(np.float64(semi_major_axis)**3)
+        print("Expected Kepler's 3rd Law ratio = {}".format(kep))
+        print("Computed Kepler's 3rd Law ratio = {}".format(com_kep))
+        
     
     def save(self, savefolder):
         """
@@ -210,7 +218,7 @@ def trajectory(init_t, init_r, init_phi, mass, init_proper_t, t_bound, max_step,
         name of the directory to save the data to
     """
     
-    if y == None:
+    if y is None:
         y = aux.initial_y(init_t, init_r, init_phi, mass, use_const)
     else:
         assert np.shape(y) == (7,), "y must be a 1D matrix of lenght 7"
