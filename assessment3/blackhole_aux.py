@@ -98,6 +98,17 @@ def geodesic_const(tau, y):
     return F
 
 
+def initial_dt(m, r, dphi, dr, use_const):
+    if use_const == False:
+        G = 1
+        c = 1
+    if use_const == True:
+        G = G_grav
+        c = c_speed
+    R = (2*G*m)/c**2
+    dt = np.sqrt(((c**2+((r**2)*(dphi**2)))/(1-R/r))+((dr**2)/((1-R/r)**2)))
+    return dt
+
 def initial_y(t, r, phi, m, use_const = False):
     """
     Function to generate the initial y matrix to be used in the geodesic equation functions based off the conditions for a stable keplerian orbit
@@ -130,15 +141,12 @@ def initial_y(t, r, phi, m, use_const = False):
     y = np.zeros(shape = (7), dtype = float)
     if use_const == False:
         G = 1
-        c = 1
     if use_const == True:
         G = G_grav
-        c = c_speed
         
-    R = (2*G*m)/c**2
     dphi = (np.sqrt((G*m)/r))/r
     y[0] = t
-    y[1] = np.sqrt((c**2+((r**2)*(dphi**2)))/(1-R/r))
+    y[1] = initial_dt(m, r, dphi, 0, use_const)
     y[2] = r
     y[3] = 0
     y[4] = phi
