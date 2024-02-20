@@ -98,7 +98,28 @@ def geodesic_const(tau, y):
     return F
 
 
-def initial_dt(m, r, dphi, dr, use_const):
+def initial_dt(m, r, dphi, dr, use_const = False):
+    """
+    Function to generate the initial time velocity to be used as inputs for the first set of geodesic equations in the integration
+
+    Parameters
+    ----------
+    m : float
+        mass of the black hole in kg
+    r : float
+        radial distance from the black hole in meters
+    dphi : float
+        angular velocity of the particle in rad/s
+    dr : float
+        radial velocity of the particle in m/s
+    use_const : bool, optional
+        if False, sets G and c to 1 when required in calculations, if True, uses G and c values from the astropy constants library in calculations, defaults to False
+
+    Returns
+    -------
+    dt : float
+        time velocity of the particle in m/s
+    """
     if use_const == False:
         G = 1
         c = 1
