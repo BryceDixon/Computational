@@ -174,3 +174,46 @@ def initial_y(t, r, phi, m, use_const = False):
     y[5] = dphi
     y[6] = m
     return y
+
+
+def newtonian(tau, y):
+    """_summary_
+
+    Parameters
+    ----------
+    tau : _type_
+        _description_
+    y : array of float
+        1D array of floats representing the parameters for newtonian gravititaiton in the form:
+        y[0] = x
+        y[1] = dx
+        y[2] = y
+        y[3] = dy
+        y[4] = mass
+    
+    Returns
+    -------
+    F : array of float
+        1D array of the 1st and 2nd order time derivatives due to newtonian accelaration in the form:
+        F[0] = dx
+        F[1] = d^2x
+        F[2] = dy
+        F[3] = d^2
+        F[4] = mass change (0)
+    """
+    
+    G = 1
+    pos = np.array([y[0], y[2]])
+    r = np.linalg.norm(pos)
+    a = (-(G * y[4])/(r**3)) * pos
+    
+    F = np.zeros_like(y, dtype=float)
+    F[0] = y[1]
+    F[1] = a[0]
+    F[2] = y[3]
+    F[3] = a[1]
+    F[4] = 0
+    
+    return F
+    
+    

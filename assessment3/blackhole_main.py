@@ -51,6 +51,12 @@ class bh_path:
             self.runga = RK(fun = aux.geodesic_const, t0 = init_proper_t, y0 = y, t_bound = t_bound, max_step = max_step, first_step = first_step, atol = atol, rtol = rtol)
         self.t_bound = t_bound
         self.use_const = use_const
+        self.t_bound = t_bound
+        self.max_step = max_step
+        self.first_step = first_step
+        self.atol = atol
+        self.rtol = rtol
+        self.use_const = use_const
         
         # plots will require maths using c and G, set these up accordingly
         if self.use_const == True:
@@ -97,6 +103,7 @@ class bh_path:
         
         self.y_values = np.array(self.y_values)
         self.propt_values = np.array(self.propt_values)
+        self.save_interval = save_interval
             
     def plot(self, conserve_plots = False):
         """
@@ -187,6 +194,9 @@ class bh_path:
             ax4.set_ylabel('Acceleration $m/s^2$')
             ax4.set_title('Acceleration against Proper Time')
             ax4.legend(bbox_to_anchor=(0.01, 0.01), loc='lower left', borderaxespad=0, fontsize = 10)
+        
+        self.fig = fig
+        self.ax = ax
             
     
     def kep_check(self):
@@ -204,6 +214,65 @@ class bh_path:
         com_kep = (np.float64(period)**2)/(np.float64(semi_major_axis)**3)
         print("Expected Kepler's 3rd Law ratio = {}".format(kep))
         print("Computed Kepler's 3rd Law ratio = {}".format(com_kep))
+    
+    def newton_check(self):
+        
+        init_y = self.y_values[0,:]
+        y_array = np.zeros(shape = (5), dtype=float)
+        # convert spherical r, phi, dr, dphi to x, y, dx, dy
+        y_array[0] = init_y[2] * np.cos(init_y[4]) # x
+        y_array[2] = init_y[2] * np.sin(init_y[4]) # y
+        #v = np.sqrt(init_y[3]**2 + (init_y[5]*init_y[2])**2)
+        #y_array[1] = v * np.cos(init_y[4]) # dx
+        #y_array[3] = v * np.sin(init_y[4]) # dy
+        y_array[1] = (init_y[3] * np.cos(init_y[4])) - (init_y[2] * init_y[5] * np.sin(init_y[4]))
+        y_array[3] = (init_y[3] * np.sin(init_y[4])) + (init_y[2] * init_y[5] * np.cos(init_y[4]))
+        y_array[4] = init_y[6] # mass
+        
+        runga = RK(fun = aux.newtonian, t0 = self.propt_values[0], y0 = y_array, t_bound = self.t_bound, max_step = self.max_step, first_step = self.first_step, atol = self.atol, rtol = self.rtol)
+        
+        newt_array = [y_array]
+        newt_time = [self.propt_values[0]]
+        num = 0
+        save_num = self.save_interval
+        while newt_time[-1] <= self.t_bound:
+            # step the integrator forward
+            runga.step()
+            if self.save_interval == None:
+                # append the results to the saving arrays based on the saving interval
+                newt_array.append(runga.y)
+                newt_time.append(runga.t)
+            else:
+                num += 1
+                if num == save_num:
+                    newt_array.append(runga.y)
+                    newt_time.append(runga.t)
+                    save_num += self.save_interval
+            # continue the loop until the integrator finishes or fails
+            if runga.status == 'finished':
+                break
+            elif runga.status == 'failed':
+                print("Runga Kutta method failed, generating results prior to failing")
+                break
+            else:
+                pass
+        newt_array = np.array(newt_array)
+        newt_time = np.array(newt_time)
+        
+        points = np.linspace(0, len(newt_time)-1, 20)
+        newt_points =  []
+        time_points = []
+        for i in points:
+            newt_points.append(newt_array[int(i),:])
+            time_points.append(newt_time[int(i)])
+        newt_points = np.array(newt_points)
+        newt_time = np.array(newt_time)
+        
+        #newt_fig = plt.figure(figsize=(10,16))
+        #ax = newt_fig.add_subplot(2,1,1)
+        #ax1 = newt_fig.add_subplot(2,1,2)
+        
+        self.ax.scatter(newt_points[:,0], newt_points[:,2], color = 'red')
         
     
     def save(self, savefolder):
@@ -216,7 +285,7 @@ class bh_path:
             name of the directory to save the data to
         """
         
-        plt.savefig(str(savefolder)+'/blackhole_plots.png', bbox_inches='tight')
+        self.fig.savefig(str(savefolder)+'/blackhole_plots.png', bbox_inches='tight')
         trajfilename = os.path.join(savefolder, 'trajectories.txt')
         proptfilename = os.path.join(savefolder, 'proper_times.txt')
         np.savetxt(trajfilename, self.y_values)
@@ -254,6 +323,7 @@ def trajectory(input_file_dir):
     save_interval = params['save_interval']
     conserve_plots = params['conserve_plots']
     keplerian_check = params['keplerian_check']
+    newton_check = params['newton_check']
     
     if auto_kep == True:
         y = aux.initial_y(init_t, init_r, init_phi, mass, use_const)
@@ -268,6 +338,8 @@ def trajectory(input_file_dir):
     bh.plot(conserve_plots)
     if keplerian_check is True:
         bh.kep_check()
+    if newton_check is True:
+        bh.newton_check()
     if savefolder is not None:
         bh.save(savefolder)
             
