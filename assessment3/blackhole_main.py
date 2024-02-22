@@ -76,13 +76,13 @@ class bh_path:
             sets how often append the results to the saving arrays, if None will save every step, this is not recommended for a large number of steps, defaults to None
         """
         
-        assert type(save_interval) == int or save_interval == None, "save_interval must be an integer or None, represents the interval between steps that the data should be saved"
+        assert type(save_interval) == int or save_interval == 'None', "save_interval must be an integer or None, represents the interval between steps that the data should be saved"
         num = 0
         save_num = save_interval
         while self.propt_values[-1] <= self.t_bound:
             # step the integrator forward
             self.runga.step()
-            if save_interval == None:
+            if save_interval == 'None':
                 # append the results to the saving arrays based on the saving interval
                 self.y_values.append(self.runga.y)
                 self.propt_values.append(self.runga.t)
@@ -117,11 +117,10 @@ class bh_path:
         
         if conserve_plots == True:
             fig = plt.figure(figsize = (10,26))
-            ax = fig.add_subplot(5,1,1)
-            ax1 = fig.add_subplot(5,1,2)
-            ax2 = fig.add_subplot(5,1,3)
-            ax3 = fig.add_subplot(5,1,4)
-            ax4 = fig.add_subplot(5,1,5)
+            ax = fig.add_subplot(4,1,1)
+            ax1 = fig.add_subplot(4,1,2)
+            ax2 = fig.add_subplot(4,1,3)
+            ax3 = fig.add_subplot(4,1,4)
         else:
             fig = plt.figure(figsize = (10,16))
             ax = fig.add_subplot(1,1,1)
@@ -170,33 +169,11 @@ class bh_path:
             ax3.set_xlabel('Proper Time /s')
             ax3.set_ylabel('Percentage Difference /%')
             ax3.set_title('Percentage Difference in the Angular Momentum against Proper Time')
-            
-            # plot computed accelerations against newtonian accelerations
-            M = self.y_values[0,6]
-            r = self.y_values[:,2]
-            newton = -(self.G * M)/(r**2)
-        
-            r_accel = []
-            t_step = []
-            for i in range(len(r)):
-                if i == 0:
-                    pass
-                else:
-                    r_accel.append(r[i]-r[i-1])
-                    t_step.append(self.propt_values[i]-self.propt_values[i-1])
-            r_accel = np.array(r_accel)
-            t_step = np.array(t_step)
-            r_accel = r_accel/t_step
-            
-            ax4.plot(self.propt_values, newton, color = 'red', label = 'Newtonian Acceleration')
-            ax4.plot(self.propt_values[1:], r_accel, color = 'blue', label = 'Computed GR Acceleration')
-            ax4.set_xlabel('Proper Time /s')
-            ax4.set_ylabel('Acceleration $m/s^2$')
-            ax4.set_title('Acceleration against Proper Time')
-            ax4.legend(bbox_to_anchor=(0.01, 0.01), loc='lower left', borderaxespad=0, fontsize = 10)
         
         self.fig = fig
         self.ax = ax
+        self.plotx = x
+        self.ploty = y
             
     
     def kep_check(self):
@@ -222,11 +199,8 @@ class bh_path:
         # convert spherical r, phi, dr, dphi to x, y, dx, dy
         y_array[0] = init_y[2] * np.cos(init_y[4]) # x
         y_array[2] = init_y[2] * np.sin(init_y[4]) # y
-        #v = np.sqrt(init_y[3]**2 + (init_y[5]*init_y[2])**2)
-        #y_array[1] = v * np.cos(init_y[4]) # dx
-        #y_array[3] = v * np.sin(init_y[4]) # dy
-        y_array[1] = (init_y[3] * np.cos(init_y[4])) - (init_y[2] * init_y[5] * np.sin(init_y[4]))
-        y_array[3] = (init_y[3] * np.sin(init_y[4])) + (init_y[2] * init_y[5] * np.cos(init_y[4]))
+        y_array[1] = (init_y[3] * np.cos(init_y[4])) - (init_y[2] * init_y[5] * np.sin(init_y[4])) # dx
+        y_array[3] = (init_y[3] * np.sin(init_y[4])) + (init_y[2] * init_y[5] * np.cos(init_y[4])) # dy
         y_array[4] = init_y[6] # mass
         
         runga = RK(fun = aux.newtonian, t0 = self.propt_values[0], y0 = y_array, t_bound = self.t_bound, max_step = self.max_step, first_step = self.first_step, atol = self.atol, rtol = self.rtol)
@@ -238,7 +212,7 @@ class bh_path:
         while newt_time[-1] <= self.t_bound:
             # step the integrator forward
             runga.step()
-            if self.save_interval == None:
+            if self.save_interval == 'None':
                 # append the results to the saving arrays based on the saving interval
                 newt_array.append(runga.y)
                 newt_time.append(runga.t)
@@ -266,13 +240,32 @@ class bh_path:
             newt_points.append(newt_array[int(i),:])
             time_points.append(newt_time[int(i)])
         newt_points = np.array(newt_points)
-        newt_time = np.array(newt_time)
+        time_points = np.array(time_points)
         
-        #newt_fig = plt.figure(figsize=(10,16))
-        #ax = newt_fig.add_subplot(2,1,1)
-        #ax1 = newt_fig.add_subplot(2,1,2)
+        newt_fig = plt.figure(figsize=(10,16))
+        ax = newt_fig.add_subplot(2,1,1)
+        ax1 = newt_fig.add_subplot(2,1,2)
         
-        self.ax.scatter(newt_points[:,0], newt_points[:,2], color = 'red')
+        ax.scatter(newt_points[:,0], newt_points[:,2], color = 'red', label = 'Newtonian')
+        ax.plot(self.plotx, self.ploty, color = 'b', label = 'General Relativistic')
+        ax.scatter(0,0, color = 'k', label = 'Black Hole Position')
+        ax.axis('equal')
+        ax.set_xlabel('X Position /m')
+        ax.set_ylabel('Y Position /m')
+        ax.set_title('Trajectory of a Particle Orbiting a Black Hole')
+        
+        newt_r = np.sqrt(newt_points[:,0]**2 + newt_points[:,2]**2)
+        r = self.y_values[:,2]
+        ax1.plot(self.propt_values, r, color = 'b', label = 'General Relativistic')
+        ax1.scatter(time_points, newt_r, color = 'red', label = 'Newtonian')
+        #ax1.set_ybound(-10e+10, 2e+10)
+        ax1.set_xlabel('Proper Time /s')
+        ax1.set_ylabel('Radial Distance /m')
+        ax1.set_title('Radial Distance against Proper Time for a Particle around a Black Hole')
+        
+        self.newt_fig = newt_fig
+        self.newt_array = newt_array
+        self.newt_time = newt_time
         
     
     def save(self, savefolder):
@@ -290,7 +283,14 @@ class bh_path:
         proptfilename = os.path.join(savefolder, 'proper_times.txt')
         np.savetxt(trajfilename, self.y_values)
         np.savetxt(proptfilename, self.propt_values)
-        
+        try:
+            self.newt_fig.savefig(str(savefolder)+'/blackhole_newtonian_plots.png', bbox_inches='tight')
+            newt_trajfilename = os.path.join(savefolder, 'newtonian_trajectories.txt')
+            newt_proptfilename = os.path.join(savefolder, 'newtonian_times.txt')
+            np.savetxt(newt_trajfilename, self.newt_array)
+            np.savetxt(newt_proptfilename, self.newt_time)
+        except:
+            pass
 
 
 
@@ -310,14 +310,14 @@ def trajectory(input_file_dir):
     savefolder = params['save_directory']
     auto_kep = params['auto_keplerian']
     use_const = params['use_const']
-    init_t = params['initial_time']
-    init_r = params['initial_r']
-    init_phi = params['initial_phi']
-    mass = params['black_hole_mass']
-    init_proper_t = params['initial_proper_t']
-    t_bound = params['max_proper_t']
-    max_step = params['max_step']
-    first_step = params['initial_step']
+    init_t = np.float64(params['initial_time'])
+    init_r = np.float64(params['initial_r'])
+    init_phi = np.float64(params['initial_phi'])
+    mass = np.float64(params['black_hole_mass'])
+    init_proper_t = np.float64(params['initial_proper_t'])
+    t_bound = np.float64(params['max_proper_t'])
+    max_step = np.float64(params['max_step'])
+    first_step = np.float64(params['initial_step'])
     atol = np.float64(params['atol'])
     rtol = np.float64(params['rtol'])
     save_interval = params['save_interval']
@@ -328,8 +328,8 @@ def trajectory(input_file_dir):
     if auto_kep == True:
         y = aux.initial_y(init_t, init_r, init_phi, mass, use_const)
     else:
-        init_dr = params['initial_dr']
-        init_dphi = params['initial_dphi']
+        init_dr = np.float64(params['initial_dr'])
+        init_dphi = np.float64(params['initial_dphi'])
         init_dt = aux.initial_dt(mass, init_r, init_dphi, init_dr, use_const)
         y = np.array([init_t, init_dt, init_r, init_dr, init_phi, init_dphi, mass])
     
