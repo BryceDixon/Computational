@@ -1,0 +1,30 @@
+#############################################################
+############ Parameters for the Black Hole Code #############
+#############################################################
+
+save_directory : 'C:/Users/bryce/downloads' # str, directory to save the plots and files to, set to None for no saving
+
+# initial parameter conditions
+auto_keplerian : False   # bool, if True this will automatically generate initial conditions for a stable circular keplerian based on given t, r, and phi parameters, the dr and dphi values entered will not be used
+black_hole_mass : 10   # float, mass of the black hole in kg
+initial_time : 0  # float, initial time in seconds, initial time velocity will be calculated based on other given parameters
+initial_r : 1e+7  # float, initial radial distance from the black hole in meters
+initial_dr : 0  # float, initial radial velocity in m/s, this will not be used if auto_keplerian is true
+initial_phi : 0   # float, initial azimuthal angle around the black hole in radians
+initial_dphi : 0  # float, initial angular velocity in rad/s, this will not be used if auto_keplerian is true
+
+# integrator parameters
+initial_proper_t : 0  # float, initial proper time in seconds
+max_proper_t : 7e+11  # float, maximum proper time in seconds, boundary time of the integration, the integration will not continue beyond this
+initial_step : 1   # float, initial time step to be used by the integrator
+max_step : 1e+9   # float, maximum time step to be used by the adaptive time step integrator
+atol : 1e-8   # float, absolute tolerance for the integrator, controls the absolute accuracy (number of correct decimal places)
+rtol : 1e-8   # float, relative tolerance for the integrator, controls the relative accuracy (number of correct digits)
+
+# additional settings
+use_const : False # bool, if False, sets G and c to 1 when required in calculations, if True, uses G and c values from the astropy constants library in calculations
+save_interval : None # int/None, sets how often to append the results to the saving arrays, if None will save every step, this is not recommended for a large number of steps
+conserve_plots : True # bool, if True, plots the conservation checks, if False, does not
+keplerian_check : False # bool, if True, prints the period and semi-major axis of the orbit and compares the ratio to expected results, if False, does not
+newton_check : True   # bool, if True produces plots for newtonian orbits using the same initial conditions, if False, does not
+newt_plot_type : dots   # string, set to 'dots' to return the newtonian plots as 20 points equally spaced in time, otherwise use standard matplotlib.pyplot.plot linestyles to customise the newtonian plots ('solid', 'dotted', 'dashed', ...)
