@@ -13,7 +13,7 @@ def geodesic(tau, y):
     Parameters 
     ----------
     tau : Nonetype
-        empty variable, exists only so the function is of correct form to be used with the RK45 integrtor
+        empty variable, exists only so the function is of correct form to be used with the RK45 integrator
     y : array of float
         1D array of floats representing the parameters to solve the geodesic equations in the form:
         y[0] = t
@@ -59,7 +59,7 @@ def geodesic_const(tau, y):
     Parameters 
     ----------
     tau : Nonetype
-        empty variable, exists only so the function is of correct form to be used with the RK45 integrtor
+        empty variable, exists only so the function is of correct form to be used with the RK45 integrator
     y : array of float
         1D array of floats representing the parameters to solve the geodesic equations in the form:
         y[0] = t
@@ -132,7 +132,7 @@ def initial_dt(m, r, dphi, dr, use_const = False):
 
 def initial_y(t, r, phi, m, use_const = False):
     """
-    Function to generate the initial y matrix to be used in the geodesic equation functions based off the conditions for a stable keplerian orbit
+    Function to generate the initial y matrix to be used in the geodesic equation functions based off the conditions for a stable circular keplerian orbit
 
     Parameters
     ----------
@@ -150,7 +150,7 @@ def initial_y(t, r, phi, m, use_const = False):
     Returns
     -------
     y : array of floats
-        1D array of the initial conditions for a stable keplerian orbit in the form:
+        1D array of the initial conditions for a stable circulalr keplerian orbit in the form:
         y[0] = t
         y[1] = dt
         y[2] = r
@@ -177,12 +177,13 @@ def initial_y(t, r, phi, m, use_const = False):
 
 
 def newtonian(tau, y):
-    """_summary_
+    """
+    Function to compute the newtonian accelerations and velocities for a particle given an initial array y of x and y positions and velocities, takes value for G as 1. 
 
     Parameters
     ----------
-    tau : _type_
-        _description_
+    tau : Nonetype
+        empty variable, exists only so the function is of correct form to be used with the RK45 integrator
     y : array of float
         1D array of floats representing the parameters for newtonian gravititaiton in the form:
         y[0] = x
@@ -203,6 +204,48 @@ def newtonian(tau, y):
     """
     
     G = 1
+    pos = np.array([y[0], y[2]])
+    r = np.linalg.norm(pos)
+    a = (-(G * y[4])/(r**3)) * pos
+    
+    F = np.zeros_like(y, dtype=float)
+    F[0] = y[1]
+    F[1] = a[0]
+    F[2] = y[3]
+    F[3] = a[1]
+    F[4] = 0
+    
+    return F
+
+
+def newtonian_const(tau, y):
+    """
+    Function to compute the newtonian accelerations and velocities for a particle given an initial array y of x and y positions and velocities, takes value for G from the astropy constants library. 
+
+    Parameters
+    ----------
+    tau : Nonetype
+        empty variable, exists only so the function is of correct form to be used with the RK45 integrator
+    y : array of float
+        1D array of floats representing the parameters for newtonian gravititaiton in the form:
+        y[0] = x
+        y[1] = dx
+        y[2] = y
+        y[3] = dy
+        y[4] = mass
+    
+    Returns
+    -------
+    F : array of float
+        1D array of the 1st and 2nd order time derivatives due to newtonian accelaration in the form:
+        F[0] = dx
+        F[1] = d^2x
+        F[2] = dy
+        F[3] = d^2
+        F[4] = mass change (0)
+    """
+    
+    G = G_grav
     pos = np.array([y[0], y[2]])
     r = np.linalg.norm(pos)
     a = (-(G * y[4])/(r**3)) * pos
