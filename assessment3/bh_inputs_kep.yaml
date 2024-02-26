@@ -27,4 +27,4 @@ save_interval : None   # int/None, sets how often to append the results to the s
 conserve_plots : True   # bool, if True, plots the conservation checks, if False, does not
 keplerian_check : True   # bool, if True, prints the period and semi-major axis of the orbit and compares the ratio to expected results, if False, does not
 newton_check : True   # bool, if True produces plots for newtonian orbits using the same initial conditions, if False, does not
-newt_plot_type : dotted   # string, set to 'dots' to return the newtonian plots as 20 points equally spaced in time, otherwise use standard matplotlib.pyplot.plot linestyles to customise the newtonian plots ('solid', 'dotted', 'dashed', ...)
+newt_plot_type : dots   # string, set to 'dots' to return the newtonian plots as 20 points equally spaced in time, otherwise use standard matplotlib.pyplot.plot linestyles to customise the newtonian plots ('solid', 'dotted', 'dashed', ...)
