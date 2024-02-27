@@ -100,6 +100,7 @@ class bh_path:
                 break
             elif self.runga.status == 'failed':
                 print("Runga Kutta method failed, generating results prior to failing")
+                print("The particle is within 1 Schwarzschild Radius of the black hole so has crossed the event horizon")
                 break
             else:
                 pass
@@ -108,13 +109,13 @@ class bh_path:
         self.propt_values = np.array(self.propt_values)
         self.save_interval = save_interval
             
-    def plot(self, conserve_plots = False):
+    def plot(self, conserve_plots = False, massless = False, wavelength = 550):
         """
         Function to plot the trajectories around the black hole and to plot the conservation checks if the user requests it
 
         Parameters
         ----------
-        conserve_plots : bool, optional
+        conserve_plots : bool
             if True, plots the conservation checks, if False, does not, defaults to False
         """
         
@@ -223,7 +224,7 @@ class bh_path:
                 dif = np.sqrt((self.plotx[i] - self.plotx[l])**2 + (self.ploty[i] - self.ploty[l])**2)
                 axis_list.append(dif)
         semi_major_axis = (np.max(axis_list))/2
-        print("Semi-Major Axis = {} m".format(semi_major_axis))
+        print("Semi-Major Axis = {} Metres".format(semi_major_axis))
         
         # compare p^2/a^3 with 4pi^2/G*M from Newton's third law
         M = self.y_values[0,6]
@@ -402,10 +403,12 @@ def trajectory(input_file_dir):
     keplerian_check = params['keplerian_check']
     newton_check = params['newton_check']
     newt_plot_type = params['newt_plot_type']
+    massless = params['massless_particle']
+    wavelength = params['particle_wavelength']
     
     if auto_kep == True:
         # initial_y function generates a circular keplerian orbit, will not work at small radii
-        y = aux.initial_y(init_t, init_r, init_phi, mass, use_const)
+        y = aux.initial_y(init_t, init_r, init_phi, mass, use_const, massless)
     else:
         if use_const is True:
             # convert dr to si units so it can be used in the integrator
@@ -414,13 +417,13 @@ def trajectory(input_file_dir):
             init_dr = np.float64(params['initial_dr']) * (2*mass)
         init_dphi = np.float64(params['initial_dphi'])
         # initial_dt calculates the time velocity given the other positions and velocities
-        init_dt = aux.initial_dt(mass, init_r, init_dphi, init_dr, use_const)
+        init_dt = aux.initial_dt(mass, init_r, init_dphi, init_dr, use_const, massless)
         y = np.array([init_t, init_dt, init_r, init_dr, init_phi, init_dphi, mass])
     
     # initialise the bh_path class using and call class functions using the input parameters
     bh = bh_path(y, init_proper_t, t_bound, max_step, first_step, atol, rtol, use_const)
     bh.run(save_interval)
-    bh.plot(conserve_plots)
+    bh.plot(conserve_plots, massless, wavelength)
     if keplerian_check is True:
         bh.kep_check()
     if newton_check is True:
