@@ -127,9 +127,10 @@ def initial_dt(m, r, dphi, dr, use_const = False, massless = False):
         G = G_grav
         c = c_speed
     R = (2*G*m)/c**2
+    if massless == False:
+        dt = np.sqrt(((c**2+((r**2)*(dphi**2)))/(1-R/r))+((dr**2)/((1-R/r)**2)))
     if massless == True:
-        c = 0
-    dt = np.sqrt(((c**2+((r**2)*(dphi**2)))/(1-R/r))+((dr**2)/((1-R/r)**2)))
+        dt = c
     return dt
 
 def initial_y(t, r, phi, m, use_const = False, massless = False):

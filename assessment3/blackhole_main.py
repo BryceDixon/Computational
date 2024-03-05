@@ -109,7 +109,7 @@ class bh_path:
         self.propt_values = np.array(self.propt_values)
         self.save_interval = save_interval
             
-    def plot(self, conserve_plots = False, massless = False, wavelength = 550):
+    def plot(self, conserve_plots = False, massless = False):
         """
         Function to plot the trajectories around the black hole and to plot the conservation checks if the user requests it
 
@@ -120,11 +120,16 @@ class bh_path:
         """
         
         if conserve_plots == True:
-            fig = plt.figure(figsize = (10,26))
-            ax = fig.add_subplot(4,1,1)
-            ax1 = fig.add_subplot(4,1,2)
-            ax2 = fig.add_subplot(4,1,3)
-            ax3 = fig.add_subplot(4,1,4)
+            if massless == False:
+                fig = plt.figure(figsize = (10,26))
+                ax = fig.add_subplot(4,1,1)
+                ax1 = fig.add_subplot(4,1,2)
+                ax2 = fig.add_subplot(4,1,3)
+                ax3 = fig.add_subplot(4,1,4)
+            else:
+                fig = plt.figure(figsize = (10,20))
+                ax = fig.add_subplot(2,1,1)
+                ax1 = fig.add_subplot(2,1,2)
         else:
             fig = plt.figure(figsize = (10,16))
             ax = fig.add_subplot(1,1,1)
@@ -153,51 +158,55 @@ class bh_path:
             R = self.R
             # c^2 is conserved based on the same invariant equation used to calclate the initial t velocity, this time taking into acocunt dt, dr, and dphi
             c_conserve = (1-R/r)*self.y_values[:,1]**2 - (1/(1-R/r))*self.y_values[:,3]**2 - r**2 * self.y_values[:,5]**2
-            c_conserve_perc = np.sqrt(((c_conserve - c_conserve[0])/c_conserve[0])**2) * 100
+            if massless == True:
+                c_conserve_perc = c_conserve
+            else:
+                c_conserve_perc = np.sqrt(((c_conserve - c_conserve[0])/c_conserve[0])**2) * 100
             
             ax1.plot(self.propt_values, c_conserve_perc, color = 'b')
             ax1.set_xlabel('Proper Time /s')
             ax1.set_ylabel('Percentage Difference /%')
             ax1.set_title('Percentage Difference in the Conserved Quantity $c^2$ against Proper Time')
             
-            # angular momentum and energy conservation plots
-            m = M * 1e-10
-            dphi = self.y_values[:,5]
-            dr = self.y_values[:,3]
-            # potential plus angular kinetic and radial kinetic energy
-            energy = (-self.G * M * m)/(r) + (0.5 * m * r**2 * dphi**2) + (0.5 * m * dr**2)
-            # plot as percentage difference if the initial value is not 0
-            if energy[0] != 0:
-                energy_perc = np.sqrt(((energy - energy[0])/energy[0])**2) * 100
-                energy_plot = energy_perc
-                etit = 'Percentage Difference in the Total Energy against Proper Time'
-                elab = 'Percentage Difference /%'
-            else:
-                energy_plot = energy
-                etit = 'Total Energy against Proper Time'
-                elab = 'Total Energy /J'
+            if massless == False:
+                # angular momentum and energy conservation plots
+                m = M * 1e-10
+                dphi = self.y_values[:,5]
+                dr = self.y_values[:,3]
+                # potential plus angular kinetic and radial kinetic energy
+                energy = (-self.G * M * m)/(r) + (0.5 * m * r**2 * dphi**2) + (0.5 * m * dr**2)
+                # plot as percentage difference if the initial value is not 0
+                if energy[0] != 0:
+                    energy_perc = np.sqrt(((energy - energy[0])/energy[0])**2) * 100
+                    energy_plot = energy_perc
+                    etit = 'Percentage Difference in the Total Energy against Proper Time'
+                    elab = 'Percentage Difference /%'
+                else:
+                    energy_plot = energy
+                    etit = 'Total Energy against Proper Time'
+                    elab = 'Total Energy /J'
             
-            ax2.plot(self.propt_values, energy_plot, color = 'b')
-            ax2.set_xlabel('Proper Time /s')
-            ax2.set_ylabel(elab)
-            ax2.set_title(etit)
+                ax2.plot(self.propt_values, energy_plot, color = 'b')
+                ax2.set_xlabel('Proper Time /s')
+                ax2.set_ylabel(elab)
+                ax2.set_title(etit)
             
-            ang_mom = m * dphi * r**2
-            # similarly for angular momentum
-            if ang_mom[0] != 0:
-                ang_mom_perc = np.sqrt(((ang_mom - ang_mom[0])/ang_mom[0])**2) * 100
-                ang_mom_plot = ang_mom_perc
-                atit = 'Percentage Difference in the Angular Momentum against Proper Time'
-                alab = 'Percentage Difference /%'
-            else:
-                ang_mom_plot = ang_mom
-                atit = 'Angular Momentum against Proper Time'
-                alab = 'Total Angular Momentum /$kgm^2s^{-1}$' 
+                ang_mom = m * dphi * r**2
+                # similarly for angular momentum
+                if ang_mom[0] != 0:
+                    ang_mom_perc = np.sqrt(((ang_mom - ang_mom[0])/ang_mom[0])**2) * 100
+                    ang_mom_plot = ang_mom_perc
+                    atit = 'Percentage Difference in the Angular Momentum against Proper Time'
+                    alab = 'Percentage Difference /%'
+                else:
+                    ang_mom_plot = ang_mom
+                    atit = 'Angular Momentum against Proper Time'
+                    alab = 'Total Angular Momentum /$kgm^2s^{-1}$' 
             
-            ax3.plot(self.propt_values, ang_mom_plot, color = 'b')
-            ax3.set_xlabel('Proper Time /s')
-            ax3.set_ylabel(alab)
-            ax3.set_title(atit)
+                ax3.plot(self.propt_values, ang_mom_plot, color = 'b')
+                ax3.set_xlabel('Proper Time /s')
+                ax3.set_ylabel(alab)
+                ax3.set_title(atit)
         
         self.fig = fig
         self.ax = ax
@@ -404,7 +413,6 @@ def trajectory(input_file_dir):
     newton_check = params['newton_check']
     newt_plot_type = params['newt_plot_type']
     massless = params['massless_particle']
-    wavelength = params['particle_wavelength']
     
     if auto_kep == True:
         # initial_y function generates a circular keplerian orbit, will not work at small radii
@@ -423,7 +431,7 @@ def trajectory(input_file_dir):
     # initialise the bh_path class using and call class functions using the input parameters
     bh = bh_path(y, init_proper_t, t_bound, max_step, first_step, atol, rtol, use_const)
     bh.run(save_interval)
-    bh.plot(conserve_plots, massless, wavelength)
+    bh.plot(conserve_plots, massless)
     if keplerian_check is True:
         bh.kep_check()
     if newton_check is True:
