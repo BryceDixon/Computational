@@ -114,11 +114,13 @@ def initial_dt(m, r, dphi, dr, use_const = False, massless = False):
         radial velocity of the particle in m/s
     use_const : bool, optional
         if False, sets G and c to 1 when required in calculations, if True, uses G and c values from the astropy constants library in calculations, defaults to False
+    massless : bool, optional
+        if False, returns the initial dt for a massive particle, if True, returns the initial dt for a massless particle, defaults to False
 
     Returns
     -------
     dt : float
-        time velocity of the particle in m/s
+        time velocity of the particle
     """
     if use_const == False:
         G = 1
@@ -127,56 +129,10 @@ def initial_dt(m, r, dphi, dr, use_const = False, massless = False):
         G = G_grav
         c = c_speed
     R = (2*G*m)/c**2
-    if massless == False:
-        dt = np.sqrt(((c**2+((r**2)*(dphi**2)))/(1-R/r))+((dr**2)/((1-R/r)**2)))
     if massless == True:
-        dt = c
+        c = 0
+    dt = np.sqrt(((c**2+((r**2)*(dphi**2)))/(1-R/r))+((dr**2)/((1-R/r)**2)))
     return dt
-
-def initial_y(t, r, phi, m, use_const = False, massless = False):
-    """
-    Function to generate the initial y matrix to be used in the geodesic equation functions based off the conditions for a stable circular keplerian orbit
-
-    Parameters
-    ----------
-    t : float
-        initial time in seconds
-    r : float
-        initial radial distance from the black hole in meters
-    phi : float
-        initial azimuthal angle around the black hole in radians
-    m : float
-        mass of the black hole in kg
-    use_const : bool, optional
-        if False, sets G and c to 1 when required in calculations, if True, uses G and c values from the astropy constants library in calculations, defaults to False
-
-    Returns
-    -------
-    y : array of floats
-        1D array of the initial conditions for a stable circulalr keplerian orbit in the form:
-        y[0] = t
-        y[1] = dt
-        y[2] = r
-        y[3] = dr
-        y[4] = phi
-        y[5] = dphi
-        y[6] = mass
-    """
-    y = np.zeros(shape = (7), dtype = float)
-    if use_const == False:
-        G = 1
-    if use_const == True:
-        G = G_grav
-        
-    dphi = (np.sqrt((G*m)/r))/r
-    y[0] = t
-    y[1] = initial_dt(m, r, dphi, 0, use_const, massless)
-    y[2] = r
-    y[3] = 0
-    y[4] = phi
-    y[5] = dphi
-    y[6] = m
-    return y
 
 
 def newtonian(tau, y):

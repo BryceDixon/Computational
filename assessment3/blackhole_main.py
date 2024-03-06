@@ -160,13 +160,15 @@ class bh_path:
             c_conserve = (1-R/r)*self.y_values[:,1]**2 - (1/(1-R/r))*self.y_values[:,3]**2 - r**2 * self.y_values[:,5]**2
             if massless == True:
                 c_conserve_perc = c_conserve
+                ax1.set_ylabel('$g_{\\mu \\nu} U^{\\mu} U^{\\nu}$')
+                ax1.set_title('Conserved Quantity, $g_{\\mu \\nu} U^{\\mu} U^{\\nu}$, against Proper Time')
             else:
                 c_conserve_perc = np.sqrt(((c_conserve - c_conserve[0])/c_conserve[0])**2) * 100
+                ax1.set_ylabel('Percentage Difference /%')
+                ax1.set_title('Percentage Difference in the Conserved Quantity $c^2$ against Proper Time')
             
             ax1.plot(self.propt_values, c_conserve_perc, color = 'b')
             ax1.set_xlabel('Proper Time /s')
-            ax1.set_ylabel('Percentage Difference /%')
-            ax1.set_title('Percentage Difference in the Conserved Quantity $c^2$ against Proper Time')
             
             if massless == False:
                 # angular momentum and energy conservation plots
@@ -391,15 +393,18 @@ def trajectory(input_file_dir):
     params = yaml.safe_load(para_file)
     
     savefolder = params['save_directory']
-    auto_kep = params['auto_keplerian']
     use_const = params['use_const']
     mass = np.float64(params['black_hole_mass'])
     init_t = np.float64(params['initial_time'])
-    # change r to si units so it can be used in the integrator
     if use_const is True:
-        init_r = np.float64(params['initial_r']) * ((2*G_grav*mass)/(c_speed**2))
+        c = c_speed
+        G = G_grav
     else:
-        init_r = np.float64(params['initial_r']) * (2*mass)
+        c = 1
+        G = 1
+    R = ((2*G*mass)/(c**2))
+    # change r to si units so it can be used in the integrator
+    init_r = np.float64(params['initial_r']) * R
     init_phi = np.float64(params['initial_phi'])
     init_proper_t = np.float64(params['initial_proper_t'])
     t_bound = np.float64(params['max_proper_t'])
@@ -414,19 +419,24 @@ def trajectory(input_file_dir):
     newt_plot_type = params['newt_plot_type']
     massless = params['massless_particle']
     
-    if auto_kep == True:
-        # initial_y function generates a circular keplerian orbit, will not work at small radii
-        y = aux.initial_y(init_t, init_r, init_phi, mass, use_const, massless)
-    else:
-        if use_const is True:
-            # convert dr to si units so it can be used in the integrator
-            init_dr = np.float64(params['initial_dr']) * ((2*G_grav*mass)/(c_speed**2))
+    # convert dr to si units so it can be used in the integrator
+    init_dr = np.float64(params['initial_dr']) * R
+    init_dphi = np.float64(params['initial_dphi'])
+    
+    if massless is True:
+        max_dphi = np.sqrt(((c**2)*(1-R/init_r))/(init_r**2))
+        max_dr = np.sqrt((c**2)*((1-R/init_r)**2))
+        assert init_dphi < max_dphi, "The photon is travelling faster than the speed of light, please enter a lower velocity"
+        assert init_dr < max_dr, "The photon is travelling faster than the speed of light, please enter a lower velocity"
+        if init_dr == np.float64(0):
+            init_dr = -np.sqrt((c**2)*((1-R/init_r)**2) - (init_r**2)*(init_dphi**2)*(1-R/init_r))
+        elif init_dphi == np.float64(0):
+            init_dphi = np.sqrt((((c**2)*(1-R/init_r))/(init_r**2))-((init_dr**2)/((init_r**2)*(1-R/init_r))))
         else:
-            init_dr = np.float64(params['initial_dr']) * (2*mass)
-        init_dphi = np.float64(params['initial_dphi'])
-        # initial_dt calculates the time velocity given the other positions and velocities
-        init_dt = aux.initial_dt(mass, init_r, init_dphi, init_dr, use_const, massless)
-        y = np.array([init_t, init_dt, init_r, init_dr, init_phi, init_dphi, mass])
+            raise ValueError("Only dphi or dr should be specified, please set the other to zero and it will be calculated to ensure the total space velocity is equal to c")
+    # initial_dt calculates the time velocity given the other positions and velocities
+    init_dt = aux.initial_dt(mass, init_r, init_dphi, init_dr, use_const, massless)
+    y = np.array([init_t, init_dt, init_r, init_dr, init_phi, init_dphi, mass])
     
     # initialise the bh_path class using and call class functions using the input parameters
     bh = bh_path(y, init_proper_t, t_bound, max_step, first_step, atol, rtol, use_const)
@@ -436,7 +446,7 @@ def trajectory(input_file_dir):
         bh.kep_check()
     if newton_check is True:
         bh.newton_check(newt_plot_type)
-    if savefolder is not None:
+    if savefolder != 'None':
         bh.save(savefolder)
             
             
