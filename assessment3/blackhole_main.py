@@ -47,7 +47,7 @@ class bh_path:
         self.propt_values = [init_proper_t]
         # initialise the runge kutta class with the correct geodesic function based on the values for G and c
         if use_const == False:
-            self.runga = RK(fun = aux.geodesic, t0 = init_proper_t, y0 = y, t_bound = t_bound, max_step = max_step, first_step = first_step, atol = atol, rtol = rtol)
+            self.runga = RK(fun = aux.kerr_geodesic, t0 = init_proper_t, y0 = y, t_bound = t_bound, max_step = max_step, first_step = first_step, atol = atol, rtol = rtol)
         if use_const == True:
             self.runga = RK(fun = aux.geodesic_const, t0 = init_proper_t, y0 = y, t_bound = t_bound, max_step = max_step, first_step = first_step, atol = atol, rtol = rtol)
         self.t_bound = t_bound
@@ -137,8 +137,11 @@ class bh_path:
         # convert the trajectories to cartesian and plot along with the black hole position, the schwarzschild radius, and 3 times the schwarzschild radius (the last stable orbit radius)
         r = self.y_values[:,2]
         phi = self.y_values[:,4]
-        x = r*np.cos(phi)
-        y = r*np.sin(phi)
+        a = self.y_values[0,7]
+        x = np.float64(np.sqrt(r**2+a**2)) * np.cos(phi)
+        y = np.float64(np.sqrt(r**2+a**2)) * np.sin(phi)
+        #x = r * np.cos(phi)
+        #y = r * np.sin(phi)
         # units of schwarzschild radius so divide x and y by R
         ax.plot(x/self.R, y/self.R, color = 'b', label = 'Particle Trajectory')
         ax.scatter(0,0, color = 'k', label = 'Black Hole Position')
@@ -157,7 +160,9 @@ class bh_path:
             M = self.y_values[0,6]
             R = self.R
             # c^2 is conserved based on the same invariant equation used to calclate the initial t velocity, this time taking into acocunt dt, dr, and dphi
-            c_conserve = (1-R/r)*self.y_values[:,1]**2 - (1/(1-R/r))*self.y_values[:,3]**2 - r**2 * self.y_values[:,5]**2
+            #c_conserve = (1-R/r)*self.y_values[:,1]**2 - (1/(1-R/r))*self.y_values[:,3]**2 - r**2 * self.y_values[:,5]**2
+            d = r**2 - R*r + a**2
+            c_conserve = (1-R/r)*(self.y_values[:,1]**2) - (r**2/d)*self.y_values[:,3]**2 - (r**2 + a**2 + (R*a**2)/r)*self.y_values[:,5]**2 - ((2*R*a)/r)*self.y_values[:,1]*self.y_values[:,5] 
             if massless == True:
                 c_conserve_perc = c_conserve
                 ax1.set_ylabel('$g_{\\mu \\nu} U^{\\mu} U^{\\nu}$')
@@ -418,6 +423,7 @@ def trajectory(input_file_dir):
     newton_check = params['newton_check']
     newt_plot_type = params['newt_plot_type']
     massless = params['massless_particle']
+    ang = params['specific_angular_momentum']
     
     # convert dr to si units so it can be used in the integrator
     init_dr = np.float64(params['initial_dr']) * R
@@ -435,8 +441,10 @@ def trajectory(input_file_dir):
         else:
             raise ValueError("Only dphi or dr should be specified, please set the other to zero and it will be calculated to ensure the total space velocity is equal to c")
     # initial_dt calculates the time velocity given the other positions and velocities
-    init_dt = aux.initial_dt(mass, init_r, init_dphi, init_dr, use_const, massless)
-    y = np.array([init_t, init_dt, init_r, init_dr, init_phi, init_dphi, mass])
+    #init_dt = aux.initial_dt(mass, init_r, init_dphi, init_dr, use_const, massless)
+    init_dt = aux.kerr_initial_dt(mass, init_r, init_dphi, init_dr, ang, use_const)
+    y = np.array([init_t, init_dt, init_r, init_dr, init_phi, init_dphi, mass, ang])
+    #y = np.array([init_t, init_dt, init_r, init_dr, init_phi, init_dphi, mass])
     
     # initialise the bh_path class using and call class functions using the input parameters
     bh = bh_path(y, init_proper_t, t_bound, max_step, first_step, atol, rtol, use_const)

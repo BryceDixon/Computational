@@ -11,6 +11,7 @@ initial_r : 1e+7  # float, initial radial distance from the black hole in meters
 initial_dr : 0  # float, initial radial velocity in m/s
 initial_phi : 0   # float, initial azimuthal angle around the black hole in radians
 initial_dphi : 0  # float, initial angular velocity in rad/s
+specific_angular_momentum : 0.9
 
 # integrator parameters
 initial_proper_t : 0  # float, initial proper time in seconds
