@@ -3,11 +3,13 @@
 import numpy as np
 from scipy.integrate import RK45 as RK
 import matplotlib.pyplot as plt
-from astropy.constants import G as G_grav
-from astropy.constants import c as c_speed
+from astropy.constants import G
+from astropy.constants import c
 import blackhole_aux as aux
 import os
 import yaml
+G_grav = G.value
+c_speed = c.value
 
 
 class bh_path:
@@ -49,7 +51,7 @@ class bh_path:
         if use_const == False:
             self.runga = RK(fun = aux.kerr_geodesic, t0 = init_proper_t, y0 = y, t_bound = t_bound, max_step = max_step, first_step = first_step, atol = atol, rtol = rtol)
         if use_const == True:
-            self.runga = RK(fun = aux.geodesic_const, t0 = init_proper_t, y0 = y, t_bound = t_bound, max_step = max_step, first_step = first_step, atol = atol, rtol = rtol)
+            self.runga = RK(fun = aux.kerr_geodesic_const, t0 = init_proper_t, y0 = y, t_bound = t_bound, max_step = max_step, first_step = first_step, atol = atol, rtol = rtol)
         self.t_bound = t_bound
         self.use_const = use_const
         self.t_bound = t_bound
@@ -68,6 +70,9 @@ class bh_path:
             self.G = 1
         # Schwarzschild radius will be used in plotting
         self.R = (2 * self.G * y[6])/(self.c**2)
+        self.out_horizon = ((self.R + np.sqrt(self.R**2 - 4*(y[7]**2)))/2)/self.R
+        if y[7] != 0:
+            self.in_horizon = ((self.R - np.sqrt(self.R**2 - 4*(y[7]**2)))/2)/self.R
     
     def run(self, save_interval = None):
         """
@@ -100,7 +105,7 @@ class bh_path:
                 break
             elif self.runga.status == 'failed':
                 print("Runga Kutta method failed, generating results prior to failing")
-                print("The particle is within 1 Schwarzschild Radius of the black hole so has crossed the event horizon")
+                print("The particle has crossed the event horizon and fallen into the black hole")
                 break
             else:
                 pass
@@ -145,9 +150,15 @@ class bh_path:
         # units of schwarzschild radius so divide x and y by R
         ax.plot(x/self.R, y/self.R, color = 'b', label = 'Particle Trajectory')
         ax.scatter(0,0, color = 'k', label = 'Black Hole Position')
-        bh_pos = plt.Circle((0, 0), 1, color='k', fill=False, label = 'Schwarzschild Radius')
+        try:
+            inev_pos = plt.Circle((0, 0), self.in_horizon, color='gray', fill=False, label = 'Inner Event Horizon')
+            ax.add_patch(inev_pos)
+            outev_pos = plt.Circle((0, 0), self.out_horizon, color='k', fill=False, label = 'Outer Event Horizon')
+            ax.add_patch(outev_pos)
+        except:
+            ev_pos = plt.Circle((0, 0), self.out_horizon, color='k', fill=False, label = 'Event Horizon')
+            ax.add_patch(ev_pos)
         R_3 = plt.Circle((0, 0), 3, color='orange', fill=False, label = '3 Schwarzschild Radii')
-        ax.add_patch(bh_pos)
         ax.add_patch(R_3)
         ax.axis('equal')
         ax.set_xlabel('X Position /Schwarzschild Radii')
@@ -324,9 +335,15 @@ class bh_path:
             # if the user specified a particular linestyle, the newtonian trajectories will be plotted as that
             ax.plot(newt_array[:,0]/self.R, newt_array[:,2]/self.R, color = 'red', linestyle = newt_plot_type, label = 'Newtonian', zorder = 20)
         ax.scatter(0,0, color = 'k', label = 'Black Hole Position', zorder = 0)
-        bh_pos = plt.Circle((0, 0), 1, color='k', fill=False, label = 'Schwarzschild Radius', zorder = 5)
+        try:
+            inev_pos = plt.Circle((0, 0), self.in_horizon, color='gray', fill=False, label = 'Inner Event Horizon', zorder = 4)
+            ax.add_patch(inev_pos)
+            outev_pos = plt.Circle((0, 0), self.out_horizon, color='k', fill=False, label = 'Outer Event Horizon', zorder = 5)
+            ax.add_patch(outev_pos)
+        except:
+            ev_pos = plt.Circle((0, 0), self.out_horizon, color='k', fill=False, label = 'Event Horizon', zorder = 5)
+            ax.add_patch(ev_pos)
         R_3 = plt.Circle((0, 0), 3, color='orange', fill=False, label = '3 Schwarzschild Radii', zorder = 10)
-        ax.add_patch(bh_pos)
         ax.add_patch(R_3)
         ax.axis('equal')
         ax.set_xlabel('X Position /Schwarzschild Radii')
@@ -365,14 +382,14 @@ class bh_path:
             name of the directory to save the data to
         """
         
-        # save the main figures and trajectories
+        # save the main figures and trajectories (trajectories in si units)
         self.fig.savefig(str(savefolder)+'/blackhole_plots.png', bbox_inches='tight')
         trajfilename = os.path.join(savefolder, 'trajectories.txt')
         proptfilename = os.path.join(savefolder, 'proper_times.txt')
         np.savetxt(trajfilename, self.y_values)
         np.savetxt(proptfilename, self.propt_values)
         try:
-            # if they exist, save the newtonian comparison figures and newtonian trajectories
+            # if they exist, save the newtonian comparison figures and newtonian trajectories (trajectories in si units)
             self.newt_fig.savefig(str(savefolder)+'/blackhole_newtonian_plots.png', bbox_inches='tight')
             newt_trajfilename = os.path.join(savefolder, 'newtonian_trajectories.txt')
             newt_proptfilename = os.path.join(savefolder, 'newtonian_times.txt')
@@ -423,7 +440,7 @@ def trajectory(input_file_dir):
     newton_check = params['newton_check']
     newt_plot_type = params['newt_plot_type']
     massless = params['massless_particle']
-    ang = params['specific_angular_momentum']
+    ang = np.float64(params['specific_angular_momentum'])
     
     # convert dr to si units so it can be used in the integrator
     init_dr = np.float64(params['initial_dr']) * R
@@ -442,7 +459,7 @@ def trajectory(input_file_dir):
             raise ValueError("Only dphi or dr should be specified, please set the other to zero and it will be calculated to ensure the total space velocity is equal to c")
     # initial_dt calculates the time velocity given the other positions and velocities
     #init_dt = aux.initial_dt(mass, init_r, init_dphi, init_dr, use_const, massless)
-    init_dt = aux.kerr_initial_dt(mass, init_r, init_dphi, init_dr, ang, use_const)
+    init_dt = aux.kerr_initial_dt(mass, init_r, init_dphi, init_dr, ang, use_const, massless)
     y = np.array([init_t, init_dt, init_r, init_dr, init_phi, init_dphi, mass, ang])
     #y = np.array([init_t, init_dt, init_r, init_dr, init_phi, init_dphi, mass])
     
