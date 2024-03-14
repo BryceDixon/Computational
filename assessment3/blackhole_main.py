@@ -173,7 +173,7 @@ class bh_path:
             # c^2 is conserved based on the same invariant equation used to calclate the initial t velocity, this time taking into acocunt dt, dr, and dphi
             #c_conserve = (1-R/r)*self.y_values[:,1]**2 - (1/(1-R/r))*self.y_values[:,3]**2 - r**2 * self.y_values[:,5]**2
             d = r**2 - R*r + a**2
-            c_conserve = (1-R/r)*(self.y_values[:,1]**2) - (r**2/d)*self.y_values[:,3]**2 - (r**2 + a**2 + (R*a**2)/r)*self.y_values[:,5]**2 - ((2*R*a)/r)*self.y_values[:,1]*self.y_values[:,5] 
+            c_conserve = (1-R/r)*(self.y_values[:,1]**2) - (r**2/d)*self.y_values[:,3]**2 - (r**2 + a**2 + (R*a**2)/r)*self.y_values[:,5]**2 + ((2*R*a)/r)*self.y_values[:,1]*self.y_values[:,5] 
             if massless == True:
                 c_conserve_perc = c_conserve
                 ax1.set_ylabel('$g_{\\mu \\nu} U^{\\mu} U^{\\nu}$')
