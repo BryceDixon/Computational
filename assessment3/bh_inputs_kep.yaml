@@ -5,27 +5,27 @@
 save_directory : 'C:/Users/bryce/downloads' # str, directory to save the plots and files to, set to None for no saving
 
 # initial parameter conditions
-black_hole_mass : 1.99e+30   # float, mass of the black hole in kg
+black_hole_mass : 1   # float, mass of the black hole in kg
 initial_time : 0  # float, initial time in seconds, initial time velocity will be calculated based on other given parameters
-initial_r : 1.9e+7 # float, initial radial distance from the black hole in schwarszchild radii
+initial_r : 3 # float, initial radial distance from the black hole in schwarszchild radii
 initial_dr : 0  # float, initial radial velocity in schwarzschild radii per second
 initial_phi : 0   # float, initial azimuthal angle around the black hole in radians
-initial_dphi : 8.4e-7  # float, initial angular velocity in rad/s
-specific_angular_momentum : 0
+initial_dphi : 0.1  # float, initial angular velocity in rad/s
+specific_angular_momentum : -0.9
 
 # integrator parameters
 initial_proper_t : 0  # float, initial proper time in seconds
-max_proper_t : 10000000  # float, maximum proper time in seconds, boundary time of the integration, the integration will not continue beyond this
+max_proper_t : 10.85  # float, maximum proper time in seconds, boundary time of the integration, the integration will not continue beyond this
 initial_step : 1   # float, initial time step to be used by the integrator
-max_step : 100000   # float, maximum time step to be used by the adaptive time step integrator
+max_step : 1   # float, maximum time step to be used by the adaptive time step integrator
 atol : 1e-8   # float, absolute tolerance for the integrator, controls the absolute accuracy (number of correct decimal places)
 rtol : 1e-8   # float, relative tolerance for the integrator, controls the relative accuracy (number of correct digits)
 
 # additional settings
-use_const : True   # bool, if False, sets G and c to 1 when required in calculations, if True, uses G and c values from the astropy constants library in calculations
+use_const : False   # bool, if False, sets G and c to 1 when required in calculations, if True, uses G and c values from the astropy constants library in calculations
 save_interval : None   # int/None, sets how often to append the results to the saving arrays, if None will save every step, this is not recommended for a large number of steps
 conserve_plots : True   # bool, if True, plots the conservation checks, if False, does not
 keplerian_check : False   # bool, if True, prints the period and semi-major axis of the orbit and compares the ratio to expected results, if False, does not
 newton_check : False   # bool, if True produces plots for newtonian orbits using the same initial conditions, if False, does not
 newt_plot_type : dots   # string, set to 'dots' to return the newtonian plots as 20 points equally spaced in time, otherwise use standard matplotlib.pyplot.plot linestyles to customise the newtonian plots ('solid', 'dotted', 'dashed', ...)
-massless_particle : False   # please enter only one particle velocity, setting the other to 0 (either dphi or dr), the other will be calculated automatically to ensure the total space velocity is equal to c
+massless_particle : True   # please enter only one particle velocity, setting the other to 0 (either dphi or dr), the other will be calculated automatically to ensure the total space velocity is equal to c

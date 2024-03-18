@@ -1,4 +1,19 @@
+"""
+Assessment 3 - Black hole code
+Main code for the black hole trajectory plotter
 
+Contains:
+    bh_path class
+        run function
+        plot function
+        kep_check function
+        newton_check function
+        save function
+    trajectory function
+
+Author : Bryce Dixon
+Version : 18/03/24
+"""
 
 import numpy as np
 from scipy.integrate import RK45 as RK
@@ -29,6 +44,7 @@ class bh_path:
             y[4] = phi
             y[5] = dphi
             y[6] = mass
+            y[7] = specific angular momentum
         init_proper_t : float
             initial proper time in seconds
         t_bound : float
@@ -139,14 +155,12 @@ class bh_path:
             fig = plt.figure(figsize = (10,16))
             ax = fig.add_subplot(1,1,1)
         
-        # convert the trajectories to cartesian and plot along with the black hole position, the schwarzschild radius, and 3 times the schwarzschild radius (the last stable orbit radius)
+        # convert the trajectories to cartesian and plot along with the black hole position, the event horizon(s), and 3 times the schwarzschild radius (the last stable orbit radius)
         r = self.y_values[:,2]
         phi = self.y_values[:,4]
         a = self.y_values[0,7]
         x = np.float64(np.sqrt(r**2+a**2)) * np.cos(phi)
         y = np.float64(np.sqrt(r**2+a**2)) * np.sin(phi)
-        #x = r * np.cos(phi)
-        #y = r * np.sin(phi)
         # units of schwarzschild radius so divide x and y by R
         ax.plot(x/self.R, y/self.R, color = 'b', label = 'Particle Trajectory')
         ax.scatter(0,0, color = 'k', label = 'Black Hole Position')
@@ -171,7 +185,6 @@ class bh_path:
             M = self.y_values[0,6]
             R = self.R
             # c^2 is conserved based on the same invariant equation used to calclate the initial t velocity, this time taking into acocunt dt, dr, and dphi
-            #c_conserve = (1-R/r)*self.y_values[:,1]**2 - (1/(1-R/r))*self.y_values[:,3]**2 - r**2 * self.y_values[:,5]**2
             d = r**2 - R*r + a**2
             c_conserve = (1-R/r)*(self.y_values[:,1]**2) - (r**2/d)*self.y_values[:,3]**2 - (r**2 + a**2 + (R*a**2)/r)*self.y_values[:,5]**2 + ((2*R*a)/r)*self.y_values[:,1]*self.y_values[:,5] 
             if massless == True:
@@ -326,7 +339,7 @@ class bh_path:
         ax = newt_fig.add_subplot(2,1,1)
         ax1 = newt_fig.add_subplot(2,1,2)
         
-        # plot the trajectories, black hole position, and schwarzschild radius as previously
+        # plot the trajectories, black hole position, and event horizon(s) as previously
         ax.plot(self.plotx/self.R, self.ploty/self.R, color = 'b', label = 'General Relativistic', zorder = 15)
         try:
             # if the user specified to use dots then the newtonian trajectories will be plotted as the 20 equally spaced points in time, this is not ideal for multiple orbits as the points tend to clump together
@@ -447,21 +460,26 @@ def trajectory(input_file_dir):
     init_dphi = np.float64(params['initial_dphi'])
     
     if massless is True:
-        max_dphi = np.sqrt(((c**2)*(1-R/init_r))/(init_r**2))
-        max_dr = np.sqrt((c**2)*((1-R/init_r)**2))
-        assert init_dphi < max_dphi, "The photon is travelling faster than the speed of light, please enter a lower velocity"
-        assert init_dr < max_dr, "The photon is travelling faster than the speed of light, please enter a lower velocity"
+        # total space velocity should be equal to c, check if this is possible given the initial conditions and calculate dphi or dr depending on what is given
+        A = (init_r**2 + ang**2 + ((R*ang**2)/(init_r)))
+        B = (2*R*ang*c)/init_r
+        d = init_r**2 - R*init_r + ang**2
+        C = ((init_r**2)/d) * (init_dr**2) - c**2 * (1-R/init_r)
+        
+        max_dphi = np.sqrt((((c**2) * (1-R/init_r)) + (B*init_dphi))/A)
+        max_dr = np.sqrt((d/init_r**2) * (((B**2)/(4*A)) + c**2 * (1-R/init_r)))
+        assert np.sqrt(init_dphi**2) < max_dphi, "The photon is travelling faster than the speed of light, dphi must be less than {} rad/s".format(max_dphi)
+        assert np.sqrt(init_dr**2) < max_dr, "The photon is travelling faster than the speed of light, dr must be less than {} schwarzschild radii /s".format(max_dr/R)
+        
         if init_dr == np.float64(0):
-            init_dr = -np.sqrt((c**2)*((1-R/init_r)**2) - (init_r**2)*(init_dphi**2)*(1-R/init_r))
+            init_dr = -np.sqrt((d/init_r**2) * ((c**2 * (1-R/init_r)) + (B * init_dphi) - (A * (init_dphi**2))))
         elif init_dphi == np.float64(0):
-            init_dphi = np.sqrt((((c**2)*(1-R/init_r))/(init_r**2))-((init_dr**2)/((init_r**2)*(1-R/init_r))))
+            init_dphi = (-B + np.sqrt(B**2 - (4*A*C)))/(2*A)
         else:
             raise ValueError("Only dphi or dr should be specified, please set the other to zero and it will be calculated to ensure the total space velocity is equal to c")
     # initial_dt calculates the time velocity given the other positions and velocities
-    #init_dt = aux.initial_dt(mass, init_r, init_dphi, init_dr, use_const, massless)
     init_dt = aux.kerr_initial_dt(mass, init_r, init_dphi, init_dr, ang, use_const, massless)
     y = np.array([init_t, init_dt, init_r, init_dr, init_phi, init_dphi, mass, ang])
-    #y = np.array([init_t, init_dt, init_r, init_dr, init_phi, init_dphi, mass])
     
     # initialise the bh_path class using and call class functions using the input parameters
     bh = bh_path(y, init_proper_t, t_bound, max_step, first_step, atol, rtol, use_const)

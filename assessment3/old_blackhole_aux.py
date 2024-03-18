@@ -1,17 +1,4 @@
-"""
-Assessment 3 - Black hole code
-Auxiliary functions for the black hole trajectory plotter
 
-Contains:
-    newtonian function
-    newtonian_const function
-    kerr_geodesic function
-    kerr_geodesic_const function
-    kerr_initial_dt function
-
-Author : Bryce Dixon
-Version : 18/03/24
-"""
 
 import numpy as np
 from astropy.constants import G
@@ -19,6 +6,135 @@ from astropy.constants import c
 G_grav = G.value
 c_speed = c.value
 
+
+
+def geodesic(tau, y):
+    """
+    Function to compute the geodesic equations for t, r, and phi given an array y, assumes theta is pi/2, and c and G are both 1.
+    
+    Parameters 
+    ----------
+    tau : Nonetype
+        empty variable, exists only so the function is of correct form to be used with the RK45 integrator
+    y : array of float
+        1D array of floats representing the parameters to solve the geodesic equations in the form:
+        y[0] = t
+        y[1] = dt
+        y[2] = r
+        y[3] = dr
+        y[4] = phi
+        y[5] = dphi
+        y[6] = mass
+    
+    Returns
+    -------
+    F : array of floats
+        1D array of floats of the 1st and 2nd order proper time derivatives obtained from the geodesic equations in the form:
+        F[0] = dt
+        F[1] = d^2t
+        F[2] = dr
+        F[3] = d^2r
+        F[4] = dphi
+        F[5] = d^2phi
+        F[6] = mass change (0)
+    """
+    F = np.zeros_like(y, dtype=float)
+    G = 1
+    c = 1
+    M = y[6]
+    R = (2*G*M)/(c**2)
+    F[0] = y[1]
+    F[1] = -(R/((y[2]**2)*(1-(R/y[2]))))*y[3]*y[1]
+    F[2] = y[3]
+    F[3] = (y[2]-R)*y[5]**2 + (y[3]**2)*(R/(2*(y[2]**2)*(1-(R/y[2])))) - ((G*M)/y[2]**2)*(1-(R/y[2]))*y[1]**2
+    F[4] = y[5]
+    F[5] = -(2/y[2])*y[3]*y[5]
+    F[6] = 0
+    
+    return F
+
+
+def geodesic_const(tau, y):
+    """
+    Function to compute the geodesic equations for t, r, and phi given an array y, assumes theta is pi/2, and c and G come from the astropy constants library.
+    
+    Parameters 
+    ----------
+    tau : Nonetype
+        empty variable, exists only so the function is of correct form to be used with the RK45 integrator
+    y : array of float
+        1D array of floats representing the parameters to solve the geodesic equations in the form:
+        y[0] = t
+        y[1] = dt
+        y[2] = r
+        y[3] = dr
+        y[4] = phi
+        y[5] = dphi
+        y[6] = mass
+    
+    Returns
+    -------
+    F : array of floats
+        1D array of floats of the 1st and 2nd order proper time derivatives obtained from the geodesic equations in the form:
+        F[0] = dt
+        F[1] = d^2t
+        F[2] = dr
+        F[3] = d^2r
+        F[4] = dphi
+        F[5] = d^2phi
+        F[6] = mass change (0)
+    """
+    F = np.zeros_like(y, dtype=float)
+    G = G_grav
+    c = c_speed
+    M = y[6]
+    R = (2*G*M)/(c**2)
+    F[0] = y[1]
+    F[1] = -(R/((y[2]**2)*(1-(R/y[2]))))*y[3]*y[1]
+    F[2] = y[3]
+    F[3] = (y[2]-R)*y[5]**2 + (y[3]**2)*(R/(2*(y[2]**2)*(1-(R/y[2])))) - ((G*M)/y[2]**2)*(1-(R/y[2]))*y[1]**2
+    F[4] = y[5]
+    F[5] = -(2/y[2])*y[3]*y[5]
+    F[6] = 0
+    
+    return F
+
+
+def initial_dt(m, r, dphi, dr, use_const = False, massless = False):
+    """
+    Function to generate the initial time velocity to be used as inputs for the first set of geodesic equations in the integration
+
+    Parameters
+    ----------
+    m : float
+        mass of the black hole in kg
+    r : float
+        radial distance from the black hole in meters
+    dphi : float
+        angular velocity of the particle in rad/s
+    dr : float
+        radial velocity of the particle in m/s
+    use_const : bool, optional
+        if False, sets G and c to 1 when required in calculations, if True, uses G and c values from the astropy constants library in calculations, defaults to False
+    massless : bool, optional
+        if False, returns the initial dt for a massive particle, if True, returns the initial dt for a massless particle, defaults to False
+
+    Returns
+    -------
+    dt : float
+        time velocity of the particle
+    """
+    if use_const == False:
+        G = 1
+        c = 1
+    if use_const == True:
+        G = G_grav
+        c = c_speed
+    R = (2*G*m)/(c**2)
+    if massless == True:
+        c = 0
+    dt = np.sqrt(((c**2+((r**2)*(dphi**2)))/(1-R/r))+((dr**2)/((1-R/r)**2)))
+    return dt
 
 
 def newtonian(tau, y):
@@ -108,7 +224,7 @@ def newtonian_const(tau, y):
 
 def kerr_geodesic(tau, y):
     """
-    Function to compute the geodesic equations for t, r, and phi given an array y using the kerr metric, assumes theta is pi/2, and c and G are both 1.
+    Function to compute the geodesic equations for t, r, and phi given an array y, assumes theta is pi/2, and c and G are both 1.
     
     Parameters 
     ----------
@@ -161,7 +277,7 @@ def kerr_geodesic(tau, y):
 
 def kerr_geodesic_const(tau, y):
     """
-    Function to compute the geodesic equations for t, r, and phi given an array y using the kerr metric, assumes theta is pi/2, and c and G are taken from the astropy constants library.
+    Function to compute the geodesic equations for t, r, and phi given an array y, assumes theta is pi/2, and c and G are both 1.
     
     Parameters 
     ----------
@@ -226,12 +342,8 @@ def kerr_initial_dt(m, r, dphi, dr, a, use_const = False, massless = False):
         angular velocity of the particle in rad/s
     dr : float
         radial velocity of the particle in m/s
-    a : float
-        specific angular momentum of the black hole
     use_const : bool, optional
         if False, sets G and c to 1 when required in calculations, if True, uses G and c values from the astropy constants library in calculations, defaults to False
-    massless : bool, optional
-        if False, returns the initial dt for a massive particle, if True, returns the initial dt for a massless particle, defaults to False
 
     Returns
     -------
@@ -253,6 +365,5 @@ def kerr_initial_dt(m, r, dphi, dr, a, use_const = False, massless = False):
     C = -(r**2/d)*dr**2 - (r**2 + a**2 + (R*a**2)/r)*dphi**2 - c**2
     dt = (-B + np.sqrt(B**2 - 4*A*C))/(2*A)
     return dt
-
     
     
