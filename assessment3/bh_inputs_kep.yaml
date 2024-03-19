@@ -10,12 +10,12 @@ initial_time : 0  # float, initial time in seconds, initial time velocity will b
 initial_r : 3 # float, initial radial distance from the black hole in schwarszchild radii
 initial_dr : 0  # float, initial radial velocity in schwarzschild radii per second
 initial_phi : 0   # float, initial azimuthal angle around the black hole in radians
-initial_dphi : 0.1  # float, initial angular velocity in rad/s
-specific_angular_momentum : -0.9
+initial_dphi : 0.11  # float, initial angular velocity in rad/s
+specific_angular_momentum : -0.5
 
 # integrator parameters
 initial_proper_t : 0  # float, initial proper time in seconds
-max_proper_t : 10.85  # float, maximum proper time in seconds, boundary time of the integration, the integration will not continue beyond this
+max_proper_t : 30  # float, maximum proper time in seconds, boundary time of the integration, the integration will not continue beyond this
 initial_step : 1   # float, initial time step to be used by the integrator
 max_step : 1   # float, maximum time step to be used by the adaptive time step integrator
 atol : 1e-8   # float, absolute tolerance for the integrator, controls the absolute accuracy (number of correct decimal places)
