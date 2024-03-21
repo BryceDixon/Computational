@@ -272,6 +272,7 @@ class bh_path:
         com_kep = (np.float64(period)**2)/(np.float64(semi_major_axis)**3)
         print("Expected Kepler's 3rd Law ratio = {}".format(kep))
         print("Computed Kepler's 3rd Law ratio = {}".format(com_kep))
+        print("Keplerian Convergence = {}".format(kep/com_kep))
         
     
     def newton_check(self, newt_plot_type):
@@ -283,10 +284,11 @@ class bh_path:
         init_y = self.y_values[0,:]
         y_array = np.zeros(shape = (5), dtype=float)
         # convert spherical r, phi, dr, dphi to x, y, dx, dy
-        y_array[0] = init_y[2] * np.cos(init_y[4]) # x
-        y_array[2] = init_y[2] * np.sin(init_y[4]) # y
-        y_array[1] = (init_y[3] * np.cos(init_y[4])) - (init_y[2] * init_y[5] * np.sin(init_y[4])) # dx
-        y_array[3] = (init_y[3] * np.sin(init_y[4])) + (init_y[2] * init_y[5] * np.cos(init_y[4])) # dy
+        root = np.sqrt(init_y[2]**2 + init_y[7]**2)
+        y_array[0] = root * np.cos(init_y[4]) # x
+        y_array[2] = root * np.sin(init_y[4]) # y
+        y_array[1] = ((init_y[3] * np.cos(init_y[4]) * init_y[2])/root) - (root * init_y[5] * np.sin(init_y[4])) # dx
+        y_array[3] = ((init_y[3] * np.sin(init_y[4]) * init_y[2])/root) + (root * init_y[5] * np.cos(init_y[4])) # dy
         y_array[4] = init_y[6] # mass
         
         # initialise the correct runge kutta method based on the values for G and c
