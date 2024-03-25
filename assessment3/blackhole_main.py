@@ -152,7 +152,7 @@ class bh_path:
                 ax = fig.add_subplot(2,1,1)
                 ax1 = fig.add_subplot(2,1,2)
         else:
-            fig = plt.figure(figsize = (10,16))
+            fig = plt.figure(figsize = (10,10))
             ax = fig.add_subplot(1,1,1)
         
         # convert the trajectories to cartesian and plot along with the black hole position, the event horizon(s), and 3 times the schwarzschild radius (the last stable orbit radius)
