@@ -136,8 +136,10 @@ class bh_path:
 
         Parameters
         ----------
-        conserve_plots : bool
+        conserve_plots : bool, optional
             if True, plots the conservation checks, if False, does not, defaults to False
+        massless : bool, optional
+            if True, calculate only the relevent conservation plots for a massless particle, defaults ot False
         """
         
         if conserve_plots == True:
@@ -278,6 +280,11 @@ class bh_path:
     def newton_check(self, newt_plot_type):
         """
         Function to the compare general relativistic orbits to newtonian orbits. Calculates newtonian trajectories using the universal law of gravitation. Plots newtonian trajectories over the GR ones and plots r against time for newtonian orbits over that of GR.
+        
+        Parameters
+        ----------
+        newt_plot_type : string
+            determines the line style of the newtonian plot, choose from default matplotlib line styles or 'dots' to return as 20 equaly spaced pints in time
         """
         
         # the newtonian trajectories are calculated using the same runge kutta method with a much simpler newtonian equation for acclerations, this requires the use of cartesian x, y, dx, dy coordinates
