@@ -1,5 +1,6 @@
 """
 File to run the code for the black hole trajectories
+Please ensure blackhole_main.py and blackhole_aux.py, and blackhole_run.py are saved in the same folder otheriwse the imports will not work
 
 Author : Bryce Dixon
 Version : 26/03/24
